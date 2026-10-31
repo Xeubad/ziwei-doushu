@@ -57,10 +57,13 @@ export default function ChatPanel({ chart }: ChatPanelProps) {
         },
       });
     } catch (e) {
-      const kind = e instanceof AiStreamError ? e.kind : 'unknown';
+      const err = e instanceof AiStreamError ? e : null;
       setMessages(prev => {
         const updated = [...prev];
-        updated[updated.length - 1] = { role: 'assistant', content: aiErrorMessage(kind) };
+        updated[updated.length - 1] = {
+          role: 'assistant',
+          content: aiErrorMessage(err?.kind ?? 'unknown', '/api/interpret', err?.retryAfter),
+        };
         return updated;
       });
     } finally {

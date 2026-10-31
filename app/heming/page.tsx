@@ -28,6 +28,7 @@ export default function HemingPage() {
   const [question, setQuestion] = useState('');
   // 错误类型决定提示文案（未配置 Key / 接口缺失 / 上游失败，见 lib/ai/client）
   const [errorKind, setErrorKind] = useState<AiErrorKind | null>(null);
+  const [errorRetryAfter, setErrorRetryAfter] = useState<number | undefined>(undefined);
   const [formError, setFormError] = useState<string | null>(null);
   const analysisRef = useRef<HTMLDivElement>(null);
 
@@ -82,7 +83,9 @@ export default function HemingPage() {
       // scroll to analysis
       setTimeout(() => analysisRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     } catch (e) {
-      setErrorKind(e instanceof AiStreamError ? e.kind : 'unknown');
+      const err = e instanceof AiStreamError ? e : null;
+      setErrorKind(err?.kind ?? 'unknown');
+      setErrorRetryAfter(err?.retryAfter);
     } finally {
       setAnalyzing(false);
     }
@@ -238,7 +241,7 @@ export default function HemingPage() {
               border: '1px solid var(--ac-bdr)', background: 'var(--ac-bg)',
               fontSize: '13px', color: 'var(--tx-2)', lineHeight: 1.8,
             }}>
-              {aiErrorMessage(errorKind, '/api/heming')}
+              {aiErrorMessage(errorKind, '/api/heming', errorRetryAfter)}
               <div style={{ marginTop: '12px' }}>
                 <button
                   onClick={() => runAnalysis(question || undefined)}

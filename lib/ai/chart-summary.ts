@@ -21,12 +21,13 @@ function starText(star: Star): string {
   return marks.length > 0 ? `${star.name}(${marks.join(',')})` : star.name;
 }
 
-/** 一宫：干支 + 星曜 + 自化 + 大限 */
+/** 一宫：干支 + 星曜 + 自化 + 大限；容忍缺字段的畸形数据 */
 function palaceText(palace: Palace): string {
-  const major = palace.stars.filter(s => s.type === 'major').map(starText);
-  const minor = palace.stars.filter(s => s.type === 'minor').map(starText);
-  const lucky = palace.stars.filter(s => s.type === 'lucky').map(starText);
-  const sha = palace.stars.filter(s => s.type === 'sha').map(starText);
+  const stars = palace.stars ?? [];
+  const major = stars.filter(s => s.type === 'major').map(starText);
+  const minor = stars.filter(s => s.type === 'minor').map(starText);
+  const lucky = stars.filter(s => s.type === 'lucky').map(starText);
+  const sha = stars.filter(s => s.type === 'sha').map(starText);
 
   const parts: string[] = [];
   parts.push(`【${palace.name}】${STEMS[palace.stem]}${BRANCHES[palace.branch]}`);
@@ -46,22 +47,24 @@ function palaceText(palace: Palace): string {
   return parts.join(' ');
 }
 
-/** 命盘 → 论命文本（system prompt 的一部分） */
+/** 命盘 → 论命文本（system prompt 的一部分）；容忍缺字段的畸形数据 */
 export function chartToPromptText(chart: ZiweiChart): string {
-  const { birthInfo, lunarInfo } = chart;
+  const birthInfo = chart.birthInfo ?? ({} as ZiweiChart['birthInfo']);
+  const lunarInfo = chart.lunarInfo ?? ({} as ZiweiChart['lunarInfo']);
+  const daXians = chart.daXians ?? [];
   const lines: string[] = [];
 
   // ── 基础信息 ──
   lines.push('## 命主信息');
   lines.push(
-    `性别:${GENDER_CN[birthInfo.gender]} 公历:${birthInfo.year}年${birthInfo.month}月${birthInfo.day}日`
+    `性别:${GENDER_CN[birthInfo.gender] ?? '未知'} 公历:${birthInfo.year}年${birthInfo.month}月${birthInfo.day}日`
   );
   if (birthInfo.origInput) {
     const o = birthInfo.origInput;
     lines.push(`原始输入时间:${o.year}-${o.month}-${o.day} ${o.clockHour}:${String(o.clockMinute).padStart(2, '0')}`);
   }
   lines.push(
-    `农历:${lunarInfo.lunarYear}年${lunarInfo.isLeapMonth ? '闰' : ''}${lunarInfo.lunarMonth}月${lunarInfo.lunarDay}日 时辰:${BRANCHES[birthInfo.hour]}时`
+    `农历:${lunarInfo.lunarYear}年${lunarInfo.isLeapMonth ? '闰' : ''}${lunarInfo.lunarMonth}月${lunarInfo.lunarDay}日 时辰:${BRANCHES[birthInfo.hour] ?? '?'}时`
   );
   if (lunarInfo.fourPillars) {
     lines.push(`四柱(节气):${lunarInfo.fourPillars.join(' ')}`);
@@ -70,29 +73,29 @@ export function chartToPromptText(chart: ZiweiChart): string {
     lines.push(`四柱(农历):${lunarInfo.fourPillarsLunar.join(' ')}`);
   }
   lines.push(
-    `五行局:${chart.wuxingJuName} 命宫:${BRANCHES[chart.mingGongBranch]} 身宫:${BRANCHES[chart.shenGongBranch]}`
+    `五行局:${chart.wuxingJuName} 命宫:${BRANCHES[chart.mingGongBranch] ?? '?'} 身宫:${BRANCHES[chart.shenGongBranch] ?? '?'}`
   );
   if (chart.mingZhu) lines.push(`命主星:${chart.mingZhu} 身主星:${chart.shenZhu ?? '—'}`);
   if (chart.yinYangGender) lines.push(`阴阳性别:${chart.yinYangGender}`);
-  lines.push(`当前年龄:${chart.currentAge}岁(虚岁) 当前大限:${chart.daXians[chart.currentDaXianIndex]?.palaceName ?? '—'}`);
+  lines.push(`当前年龄:${chart.currentAge}岁(虚岁) 当前大限:${daXians[chart.currentDaXianIndex]?.palaceName ?? '—'}`);
 
   // ── 十二宫 ──
   lines.push('');
   lines.push('## 十二宫');
-  for (const palace of chart.palaces) {
+  for (const palace of chart.palaces ?? []) {
     lines.push(palaceText(palace));
   }
 
   // ── 大限 ──
   lines.push('');
   lines.push('## 大限(每十年行运)');
-  for (let i = 0; i < chart.daXians.length; i++) {
-    const d = chart.daXians[i];
+  for (let i = 0; i < daXians.length; i++) {
+    const d = daXians[i];
     const mark = i === chart.currentDaXianIndex ? ' ← 当前' : '';
     const sihua = d.siHua
       ? ` 四化:禄${d.siHua.lu}/权${d.siHua.quan}/科${d.siHua.ke}/忌${d.siHua.ji}`
       : '';
-    lines.push(`${d.startAge}-${d.endAge}岁 ${d.palaceName}(${STEMS[d.stemIndex ?? 0]}${BRANCHES[d.palaceBranch]})${sihua}${mark}`);
+    lines.push(`${d.startAge}-${d.endAge}岁 ${d.palaceName}(${STEMS[d.stemIndex ?? 0] ?? '?'}${BRANCHES[d.palaceBranch] ?? '?'})${sihua}${mark}`);
   }
 
   return lines.join('\n');
@@ -117,26 +120,29 @@ export function mingGongToPromptText(chart: ZiweiChart): string {
   return ['', '## 命宫定调', `主星:${s.stars.join('、') || '空宫(借对宫)'} 关键词:${s.keywords.join('、')} 星性:${s.nature}`].join('\n');
 }
 
-/** 合盘用：精简命盘摘要（一人一份，控制 token） */
+/** 合盘用：精简命盘摘要（一人一份，控制 token）；容忍缺字段的畸形数据 */
 export function chartToCompactText(chart: ZiweiChart, label: string): string {
-  const fuqi = chart.palaces.find(p => p.name === '夫妻');
-  const ming = chart.palaces.find(p => p.name === '命宫');
-  const fude = chart.palaces.find(p => p.name === '福德');
+  const birthInfo = chart.birthInfo ?? ({} as ZiweiChart['birthInfo']);
+  const palaces = chart.palaces ?? [];
+  const daXians = chart.daXians ?? [];
+  const fuqi = palaces.find(p => p.name === '夫妻');
+  const ming = palaces.find(p => p.name === '命宫');
+  const fude = palaces.find(p => p.name === '福德');
   const lines: string[] = [];
   lines.push(`### ${label}`);
   lines.push(
-    `性别:${GENDER_CN[chart.birthInfo.gender]} 公历:${chart.birthInfo.year}-${chart.birthInfo.month}-${chart.birthInfo.day} 时辰:${BRANCHES[chart.birthInfo.hour]}时 五行局:${chart.wuxingJuName} 当前:${chart.currentAge}岁`
+    `性别:${GENDER_CN[birthInfo.gender] ?? '未知'} 公历:${birthInfo.year}-${birthInfo.month}-${birthInfo.day} 时辰:${BRANCHES[birthInfo.hour] ?? '?'}时 五行局:${chart.wuxingJuName} 当前:${chart.currentAge}岁`
   );
   if (ming) lines.push(`命宫:${palaceText(ming)}`);
   if (fuqi) lines.push(`夫妻宫:${palaceText(fuqi)}`);
   if (fude) lines.push(`福德宫:${palaceText(fude)}`);
   // 其余宫位只列主星，省 token
-  for (const p of chart.palaces) {
+  for (const p of palaces) {
     if (p.name === '命宫' || p.name === '夫妻' || p.name === '福德') continue;
     const major = p.stars.filter(s => s.type === 'major').map(starText);
     lines.push(`${p.name}:${major.length > 0 ? major.join('、') : '空宫'}`);
   }
-  const cur = chart.daXians[chart.currentDaXianIndex];
+  const cur = daXians[chart.currentDaXianIndex];
   if (cur) {
     lines.push(`当前大限:${cur.startAge}-${cur.endAge}岁行${cur.palaceName}`);
   }

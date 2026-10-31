@@ -11,6 +11,7 @@
 import { NextRequest } from 'next/server';
 import type { ZiweiChart } from '@/lib/ziwei/types';
 import { resolveAiConfig } from '@/lib/ai/config';
+import { guardAiRequest } from '@/lib/ai/guard';
 import { buildHemingSystemPrompt } from '@/lib/ai/prompts';
 import { streamChatCompletion, type ChatMessage } from '@/lib/ai/sse';
 
@@ -28,6 +29,10 @@ function isZiweiChart(v: unknown): v is ZiweiChart {
 }
 
 export async function POST(req: NextRequest) {
+  // 访问口令 + 速率限制（401 / 429）
+  const denied = guardAiRequest(req, 'heming');
+  if (denied) return denied;
+
   let body: unknown;
   try {
     body = await req.json();
@@ -51,8 +56,16 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'ai-not-configured' }, { status: 503 });
   }
 
+  let systemPrompt: string;
+  try {
+    systemPrompt = buildHemingSystemPrompt(chartA, chartB);
+  } catch (err) {
+    console.error('[api/heming] prompt build error:', err);
+    return Response.json({ error: 'invalid-request', detail: 'chart 数据不完整' }, { status: 400 });
+  }
+
   const chatMessages: ChatMessage[] = [
-    { role: 'system', content: buildHemingSystemPrompt(chartA, chartB) },
+    { role: 'system', content: systemPrompt },
     {
       role: 'user',
       content: question?.trim()

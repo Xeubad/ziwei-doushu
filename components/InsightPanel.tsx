@@ -256,11 +256,15 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
         },
       });
     } catch (e) {
-      const kind = e instanceof AiStreamError ? e.kind : 'unknown';
+      const err = e instanceof AiStreamError ? e : null;
       // 替换占位消息，避免留下一条空的 assistant 气泡
       setMessages(prev => {
         const updated = [...prev];
-        updated[updated.length - 1] = { role: 'assistant', content: aiErrorMessage(kind), isError: true };
+        updated[updated.length - 1] = {
+          role: 'assistant',
+          content: aiErrorMessage(err?.kind ?? 'unknown', '/api/interpret', err?.retryAfter),
+          isError: true,
+        };
         return updated;
       });
     } finally {
