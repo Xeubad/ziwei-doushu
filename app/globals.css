@@ -77,6 +77,12 @@
   --ac-bg:  rgba(212,168,67,0.10);
   --ac-bdr: rgba(212,168,67,0.25);
 
+  /* 四化语义色：暗底提亮，保证命盘数据可读 */
+  --lu:   #4ade80;
+  --quan: #60a5fa;
+  --ke:   #d4b13c;
+  --ji:   #f87171;
+
   --bdr:      rgba(255,255,255,0.07);
   --bdr-med:  rgba(255,255,255,0.12);
   --bdr-heavy:rgba(255,255,255,0.20);
@@ -119,6 +125,26 @@ body {
 }
 
 /* ─── 工具类 ─────────────────────────────────────────────── */
+
+/* ── 兼容层：旧「--t-*」token 别名（ChartBoard / InsightPanel 等组件在用）
+   全部映射到 2.0 设计系统，新代码请直接用 --ac / --tx-* / --bdr-* ── */
+:root {
+  --t-gold:  var(--ac);
+  --t-text:  var(--tx-0);
+  --t-text2: var(--tx-2);
+  --t-faint: var(--tx-3);
+  --t-border: var(--bdr-med);
+  --t-card: var(--bg-card);
+  --t-bg: var(--bg-card);
+  --t-surface: var(--bg-1);
+}
+
+/* 玻璃卡片（命盘工作台组件用） */
+.card-glass {
+  background: var(--bg-card);
+  border: 1px solid var(--bdr);
+  box-shadow: var(--sh-sm);
+}
 
 /* 容器 */
 .container-page {
@@ -239,10 +265,10 @@ body {
 }
 
 /* 四化 Badge */
-.badge-lu   { color: var(--lu);   background: rgba(45,122,74,0.08);   border: 1px solid rgba(45,122,74,0.20);   }
-.badge-quan { color: var(--quan); background: rgba(26,86,168,0.08);   border: 1px solid rgba(26,86,168,0.20);   }
-.badge-ke   { color: var(--ke);   background: rgba(138,112,24,0.08);  border: 1px solid rgba(138,112,24,0.20);  }
-.badge-ji   { color: var(--ji);   background: rgba(168,50,40,0.08);   border: 1px solid rgba(168,50,40,0.20);   }
+.badge-lu   { color: var(--lu);   background: color-mix(in srgb, var(--lu) 8%, transparent);   border: 1px solid color-mix(in srgb, var(--lu) 22%, transparent);   }
+.badge-quan { color: var(--quan); background: color-mix(in srgb, var(--quan) 8%, transparent); border: 1px solid color-mix(in srgb, var(--quan) 22%, transparent);   }
+.badge-ke   { color: var(--ke);   background: color-mix(in srgb, var(--ke) 8%, transparent);  border: 1px solid color-mix(in srgb, var(--ke) 22%, transparent);  }
+.badge-ji   { color: var(--ji);   background: color-mix(in srgb, var(--ji) 8%, transparent);   border: 1px solid color-mix(in srgb, var(--ji) 22%, transparent);   }
 
 .sihua-badge {
   display: inline-flex;
@@ -300,6 +326,95 @@ body {
 .animate-fade-up { animation: fade-up 0.5s ease forwards; }
 .animate-fade-in { animation: fade-in 0.4s ease forwards; }
 
+/* ─── AI 输出排版（components/AiContent.tsx 配套） ────────── */
+.ai-content {
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: var(--tx-1);
+}
+.ai-content .ai-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--ac);
+}
+.ai-content .ai-section:first-child { margin-top: 0; }
+.ai-content .ai-section::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, var(--ac-bdr), transparent);
+}
+.ai-content p { margin: 2px 0; }
+.ai-content strong { font-weight: 600; color: var(--tx-0); }
+.ai-content .ai-bullet {
+  position: relative;
+  padding-left: 14px;
+  margin: 2px 0;
+}
+.ai-content .ai-bullet::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.72em;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--ac);
+  opacity: 0.55;
+}
+.ai-content .ai-num {
+  display: flex;
+  gap: 8px;
+  margin: 2px 0;
+}
+.ai-content .ai-num-idx {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ac);
+  opacity: 0.8;
+  line-height: 2.1;
+}
+.ai-content blockquote {
+  margin: 6px 0;
+  padding: 4px 12px;
+  border-left: 2px solid var(--ac-bdr);
+  background: var(--ac-bg);
+  border-radius: 0 var(--r-xs) var(--r-xs) 0;
+  color: var(--tx-2);
+}
+.ai-content hr {
+  margin: 10px 0;
+  border: none;
+  height: 1px;
+  background: var(--bdr);
+}
+.ai-content code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  padding: 1px 5px;
+  border-radius: var(--r-xs);
+  background: var(--bg-2);
+  color: var(--ac-dim);
+}
+.ai-cursor {
+  display: inline-block;
+  width: 6px;
+  height: 13px;
+  margin-left: 2px;
+  border-radius: 2px;
+  vertical-align: -2px;
+  background: var(--ac);
+  opacity: 0.65;
+  animation: ai-blink 1s steps(2, start) infinite;
+}
+@keyframes ai-blink { to { visibility: hidden; } }
+
 /* ─── 渐变文字（3.0 主标题用） ──────────────────────────── */
 .grad-text {
   -webkit-background-clip: text;
@@ -326,17 +441,26 @@ body {
   flex: 1;
   overflow: hidden;
   display: grid;
-  grid-template-columns: minmax(420px, 520px) 1fr;
+  /* 左侧命盘占主要宽度，右侧解读面板固定 320~400px */
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+  background: var(--bg-1);
 }
 .chart-workspace-left {
-  border-right: 1px solid var(--bdr);
   overflow-y: auto;
   padding: 20px 20px 48px;
   background: var(--bg-0);
 }
 .chart-workspace-right {
-  overflow-y: auto;
+  overflow: hidden;
   background: var(--bg-1);
+  display: flex;
+  padding: 12px 12px 12px 0;
+}
+/* 右侧 AI 解读面板：占满列高，内部自己滚动 */
+.insight-panel-root {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
 }
 
 .chart-topbar {
@@ -383,7 +507,10 @@ body {
   .chart-workspace-right {
     overflow: visible;
     flex: none;
-    padding-bottom: 24px;
+    padding: 12px;
+    /* 移动端给解读面板一个明确高度，内部滚动，输入框常驻可见 */
+    height: 78vh;
+    min-height: 520px;
   }
 
   .chart-topbar {
@@ -421,6 +548,18 @@ body {
   .palace-cell { min-height: 68px !important; padding: 5px 4px !important; }
   .chart-workspace-left { padding: 10px 8px 16px; }
   .chart-topbar { padding: 0 8px; gap: 6px; }
+}
+
+/* 星曜详情抽屉（chart 页）：宽屏时停在 AI 面板左侧，避免遮挡 */
+.star-drawer {
+  position: fixed;
+  top: 68px;
+  right: 20px;
+  width: min(340px, calc(100vw - 40px));
+  z-index: 60;
+}
+@media (min-width: 1100px) {
+  .star-drawer { right: 432px; }
 }
 
 /* ─── 打印样式 ───────────────────────────────────────────── */

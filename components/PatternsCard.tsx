@@ -1,7 +1,7 @@
 'use client';
 import { motion } from 'framer-motion';
 import type { ZiweiChart } from '@/lib/ziwei/types';
-import { detectPatterns } from '@/lib/ziwei/patterns';
+import { detectPatterns } from '@/lib/ziwei/patterns-core';
 
 const LevelStyle = {
   excellent: { dot: 'bg-amber-400', label: 'text-amber-500', badge: 'text-amber-500 bg-amber-500/10 border-amber-500/25' },
@@ -41,8 +41,8 @@ export default function PatternsCard({ chart }: { chart: ZiweiChart }) {
                 <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${st.dot}`} />
                 <span className={`text-[11px] font-medium ${st.label}`}>{p.name}</span>
                 <div className="flex gap-1 ml-auto">
-                  {p.palaces.slice(0, 2).map(pa => (
-                    <span key={pa} className={`text-[8px] px-1.5 py-px rounded-full border ${st.badge}`}>
+                  {p.palaces.slice(0, 2).map((pa, pi) => (
+                    <span key={`${pa}-${pi}`} className={`text-[8px] px-1.5 py-px rounded-full border ${st.badge}`}>
                       {pa.replace('宫', '')}
                     </span>
                   ))}

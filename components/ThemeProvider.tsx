@@ -8,16 +8,12 @@ const ThemeContext = createContext<{
   toggle: () => void;
 }>({ theme: 'dark', toggle: () => {} });
 
-function getInitialTheme(): Theme {
-  if (typeof document !== 'undefined') {
-    const attr = document.documentElement.getAttribute('data-theme');
-    if (attr === 'light' || attr === 'dark') return attr;
-  }
-  return 'dark';
-}
-
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  // 首帧必须与 SSR 输出一致（'dark'）：React 19 对 hydration 失配非常敏感，
+  // 服务端 'dark' vs 客户端用户偏好会导致失配报错、样式提交卡死（DOM 不更新）。
+  // 用户偏好在挂载后由下面的 effect 同步（配合 layout 里 beforeInteractive 的
+  // 主题引导脚本，CSS 变量部分不会闪色）。
+  const [theme, setTheme] = useState<Theme>('dark');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

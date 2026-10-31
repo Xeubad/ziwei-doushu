@@ -2,7 +2,7 @@
 import { motion } from 'framer-motion';
 import type { ZiweiChart } from '@/lib/ziwei/types';
 import { BRANCHES, STEMS } from '@/lib/ziwei/constants';
-import { detectPatterns, getMingGongSummary } from '@/lib/ziwei/patterns';
+import { detectPatterns, getMingGongSummary } from '@/lib/ziwei/patterns-core';
 
 interface ChartSummaryProps {
   chart: ZiweiChart;
@@ -176,8 +176,8 @@ export default function ChartSummary({ chart }: ChartSummaryProps) {
                     <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${st.dot}`} />
                     <span className={`text-[11px] font-medium ${st.label}`}>{p.name}</span>
                     <div className="flex gap-1 ml-auto">
-                      {p.palaces.slice(0, 2).map(pa => (
-                        <span key={pa} className={`text-[8px] px-1.5 py-px rounded-full border ${st.badge}`}>
+                      {p.palaces.slice(0, 2).map((pa, pi) => (
+                        <span key={`${pa}-${pi}`} className={`text-[8px] px-1.5 py-px rounded-full border ${st.badge}`}>
                           {pa.replace('宫', '')}
                         </span>
                       ))}

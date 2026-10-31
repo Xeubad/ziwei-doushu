@@ -1,51 +1,14 @@
 'use client';
 import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import BirthForm, { type BirthFormState } from '@/components/BirthForm';
+import AiContent from '@/components/AiContent';
+import { streamAiText, aiErrorMessage, AiStreamError, type AiErrorKind } from '@/lib/ai/client';
 import { formToBirthInfo } from '@/lib/ziwei/share';
 import { generateChart as buildChart } from '@/lib/ziwei/algorithm';
 import type { BirthInfo, ZiweiChart } from '@/lib/ziwei/types';
 import { useTheme } from '@/components/ThemeProvider';
-
-// ─── AiContent 渲染器（与 InsightPanel 一致）────────────────
-function AiContent({ text, streaming }: { text: string; streaming?: boolean }) {
-  const lines = text.split('\n');
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-      {lines.map((line, i) => {
-        const sectionMatch = line.match(/^\*\*【(.+?)】\*\*$/);
-        if (sectionMatch) {
-          return (
-            <div key={i} style={{ paddingTop: i === 0 ? 0 : '14px', paddingBottom: '4px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ac)', letterSpacing: '0.04em' }}>
-                【{sectionMatch[1]}】
-              </span>
-            </div>
-          );
-        }
-        if (line.trim() === '') return <div key={i} style={{ height: '4px' }} />;
-        const parts = line.split(/\*\*(.+?)\*\*/);
-        return (
-          <div key={i} style={{ fontSize: '13px', lineHeight: 1.75, color: 'var(--tx-2)' }}>
-            {parts.map((part, j) =>
-              j % 2 === 0
-                ? part
-                : <strong key={j} style={{ fontWeight: 500, color: 'var(--tx-0)' }}>{part}</strong>
-            )}
-          </div>
-        );
-      })}
-      {streaming && (
-        <span style={{
-          display: 'inline-block', width: '7px', height: '13px',
-          background: 'var(--ac)', opacity: 0.5, borderRadius: '2px',
-          animation: 'pulse 1s ease-in-out infinite',
-          verticalAlign: 'middle', marginLeft: '2px',
-        }} />
-      )}
-    </div>
-  );
-}
 
 export default function HemingPage() {
   const router = useRouter();
@@ -63,9 +26,8 @@ export default function HemingPage() {
   const [analysis, setAnalysis] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [question, setQuestion] = useState('');
-  const [analysisError, setAnalysisError] = useState(false);
-  // 开源版不含 /api/heming：接口 404 时单独说明，而不是让用户反复重试
-  const [apiMissing, setApiMissing] = useState(false);
+  // 错误类型决定提示文案（未配置 Key / 接口缺失 / 上游失败，见 lib/ai/client）
+  const [errorKind, setErrorKind] = useState<AiErrorKind | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const analysisRef = useRef<HTMLDivElement>(null);
 
@@ -92,7 +54,7 @@ export default function HemingPage() {
     }
     setAnalyzing(true);
     setAnalysis('');
-    setAnalysisError(false);
+    setErrorKind(null);
 
     try {
       // 并行起两张盘（如果还没起）
@@ -105,44 +67,22 @@ export default function HemingPage() {
       cA = newA;
       cB = newB;
       if (!cA || !cB) {
-        setAnalysisError(true);
+        setErrorKind('unknown');
         setAnalyzing(false);
         return;
       }
       if (!chartA) setChartA(cA);
       if (!chartB) setChartB(cB);
 
-      const res = await fetch('/api/heming', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chartA: cA, chartB: cB, question: q ?? undefined }),
+      await streamAiText({
+        url: '/api/heming',
+        body: { chartA: cA, chartB: cB, question: q ?? undefined },
+        onText: setAnalysis,
       });
-      if (res.status === 404) { setApiMissing(true); throw new Error('api-missing'); }
-      if (!res.ok || !res.body) throw new Error();
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let text = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        for (const line of chunk.split('\n')) {
-          if (!line.startsWith('data: ')) continue;
-          const data = line.slice(6);
-          if (data === '[DONE]') break;
-          try {
-            const delta = JSON.parse(data).delta?.text ?? '';
-            text += delta;
-            setAnalysis(text);
-          } catch { /* skip */ }
-        }
-      }
       // scroll to analysis
       setTimeout(() => analysisRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-    } catch {
-      setAnalysisError(true);
+    } catch (e) {
+      setErrorKind(e instanceof AiStreamError ? e.kind : 'unknown');
     } finally {
       setAnalyzing(false);
     }
@@ -183,14 +123,19 @@ export default function HemingPage() {
         <div style={{ width: '1px', height: '20px', background: 'var(--bdr-med)' }} />
         <span style={{ fontSize: '12px', color: 'var(--ac)', letterSpacing: '0.2em' }}>合盘分析</span>
         <div style={{ flex: 1 }} />
-        <span style={{ fontSize: '11px', color: 'var(--tx-3)' }}>感情 · 合伙 · 亲子 · 朋友</span>
+        <span className="heming-topbar-tag" style={{ fontSize: '11px', color: 'var(--tx-3)' }}>感情 · 合伙 · 亲子 · 朋友</span>
       </header>
 
       {/* 主体 */}
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '32px 24px 80px' }}>
 
         {/* 标题 */}
-        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          style={{ textAlign: 'center', marginBottom: '36px' }}
+        >
           <div style={{ fontSize: '28px', color: 'var(--ac)', opacity: 0.15, marginBottom: '12px' }}>☯</div>
           <h1 style={{ fontSize: '22px', fontWeight: 600, letterSpacing: '0.15em', color: 'var(--tx-0)', marginBottom: '8px' }}>
             紫微合盘
@@ -198,11 +143,16 @@ export default function HemingPage() {
           <p style={{ fontSize: '13px', color: 'var(--tx-3)', lineHeight: 1.6 }}>
             输入两个人的出生信息，AI 基于倪海厦体系分析双方命盘的缘分匹配度、感情走向与相处建议
           </p>
-        </div>
+        </motion.div>
 
         {/* 双栏表单 */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}
-          className="heming-grid">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
+          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}
+          className="heming-grid"
+        >
           {/* 甲方 */}
           <div style={cardStyle}>
             <span style={labelStyle}>甲方 — A</span>
@@ -222,7 +172,7 @@ export default function HemingPage() {
               onFormSave={setFormB}
             />
           </div>
-        </div>
+        </motion.div>
 
         {/* ═══ 大合盘分析框（视觉中心，始终显示）════════════════ */}
         <div ref={analysisRef} style={{
@@ -240,7 +190,7 @@ export default function HemingPage() {
           </div>
 
           {/* 状态分支 */}
-          {!analysis && !analyzing && (
+          {!analysis && !analyzing && !errorKind && (
             <div style={{ textAlign: 'center', padding: '32px 0' }}>
               <div style={{ fontSize: '13px', color: 'var(--tx-3)', marginBottom: '24px', lineHeight: 1.7 }}>
                 填好双方出生信息后，点击下方按钮<br />
@@ -282,11 +232,29 @@ export default function HemingPage() {
 
           {analysis && <AiContent text={analysis} streaming={analyzing} />}
 
-          {analysisError && (
-            <div style={{ padding: '12px 16px', borderRadius: '10px', border: '1px solid var(--bdr)', background: 'var(--bg-card)', fontSize: '13px', color: 'var(--tx-2)', marginTop: '12px' }}>
-              {apiMissing
-                ? '开源版不含合盘 AI 分析接口（/api/heming），需要你自己实现后才能用。两人的命盘可以分别到「排盘」页（/chart）查看。'
-                : '分析暂时不可用，请重试。'}
+          {errorKind && (
+            <div style={{
+              padding: '16px 18px', borderRadius: '12px',
+              border: '1px solid var(--ac-bdr)', background: 'var(--ac-bg)',
+              fontSize: '13px', color: 'var(--tx-2)', lineHeight: 1.8,
+            }}>
+              {aiErrorMessage(errorKind, '/api/heming')}
+              <div style={{ marginTop: '12px' }}>
+                <button
+                  onClick={() => runAnalysis(question || undefined)}
+                  disabled={analyzing}
+                  style={{
+                    padding: '8px 20px', borderRadius: 'var(--r-pill)',
+                    border: '1px solid var(--ac-bdr)', background: 'transparent',
+                    color: 'var(--ac)', fontSize: '12px', cursor: 'pointer',
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--ac-bg)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                >
+                  重试
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -362,6 +330,7 @@ export default function HemingPage() {
       <style>{`
         @media (max-width: 680px) {
           .heming-grid { grid-template-columns: 1fr !important; }
+          .heming-topbar-tag { display: none; }
         }
       `}</style>
     </div>

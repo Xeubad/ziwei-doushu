@@ -2,6 +2,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ZiweiChart } from '@/lib/ziwei/types';
+import AiContent from './AiContent';
+import { streamAiText, aiErrorMessage, AiStreamError } from '@/lib/ai/client';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -40,51 +42,27 @@ export default function ChatPanel({ chart }: ChatPanelProps) {
     setInput('');
     setLoading(true);
 
+    // 先占位一条空的 assistant 消息，流式增量持续覆盖它
+    setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
     try {
-      const res = await fetch('/api/interpret', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chart, messages: [...messages, userMsg] }),
+      await streamAiText({
+        url: '/api/interpret',
+        body: { chart, messages: [...messages, userMsg] },
+        onText: (fullText) => {
+          setMessages(prev => {
+            const updated = [...prev];
+            updated[updated.length - 1] = { role: 'assistant', content: fullText };
+            return updated;
+          });
+        },
       });
-
-      if (res.status === 404) throw new Error('api-missing');
-      if (!res.ok) throw new Error('请求失败');
-      if (!res.body) throw new Error('无响应流');
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let assistantText = '';
-
-      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') break;
-            try {
-              const parsed = JSON.parse(data);
-              const delta = parsed.delta?.text ?? '';
-              assistantText += delta;
-              setMessages(prev => {
-                const updated = [...prev];
-                updated[updated.length - 1] = { role: 'assistant', content: assistantText };
-                return updated;
-              });
-            } catch { /* skip */ }
-          }
-        }
-      }
     } catch (e) {
-      const missing = e instanceof Error && e.message === 'api-missing';
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: missing ? '开源版不含 AI 解读接口（/api/interpret），需要你自己实现后才能用，详见 README「快速开始」。排盘本身不需要任何 API Key。' : '解读失败，请检查API配置或稍后重试。',
-      }]);
+      const kind = e instanceof AiStreamError ? e.kind : 'unknown';
+      setMessages(prev => {
+        const updated = [...prev];
+        updated[updated.length - 1] = { role: 'assistant', content: aiErrorMessage(kind) };
+        return updated;
+      });
     } finally {
       setLoading(false);
     }
@@ -133,12 +111,13 @@ export default function ChatPanel({ chart }: ChatPanelProps) {
                 {msg.role === 'assistant' && (
                   <div className="text-[10px] mb-1" style={{ color: 'var(--t-faint)' }}>命理师 ·</div>
                 )}
-                <div className="whitespace-pre-wrap text-xs leading-relaxed">
-                  {msg.content}
-                  {loading && i === messages.length - 1 && msg.role === 'assistant' && (
-                    <span className="inline-block w-1.5 h-3 ml-0.5 animate-pulse" style={{ background: 'var(--t-gold)', opacity: 0.6 }} />
-                  )}
-                </div>
+                {msg.role === 'assistant' ? (
+                  <AiContent text={msg.content} streaming={loading && i === messages.length - 1} />
+                ) : (
+                  <div className="whitespace-pre-wrap text-xs leading-relaxed">
+                    {msg.content}
+                  </div>
+                )}
               </div>
             </motion.div>
           ))}

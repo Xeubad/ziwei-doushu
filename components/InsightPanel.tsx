@@ -3,11 +3,14 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ZiweiChart, Palace } from '@/lib/ziwei/types';
 import type { TimeView } from './TimeNav';
+import AiContent from './AiContent';
+import { streamAiText, aiErrorMessage, AiStreamError } from '@/lib/ai/client';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   hidden?: boolean; // don't show user bubble for auto/topic messages
+  isError?: boolean; // 错误提示（未配置 Key / 上游失败等），按警示卡渲染
 }
 
 interface SelectedSiHua {
@@ -130,57 +133,20 @@ const TOPIC_PROMPTS: Record<string, string> = {
 };
 
 const PALACE_ROLES: Record<string, string> = {
+  // iztro 宫名口径：仅命宫带「宫」字，「交友」在 iztro 里叫「仆役」
   '命宫':   '自我、性格、先天格局',
-  '兄弟宫': '兄弟关系、合伙人',
-  '夫妻宫': '感情关系、婚姻状态',
-  '子女宫': '子女缘分、下属关系',
-  '财帛宫': '财运来源、收入方式',
-  '疾厄宫': '身体健康、意外',
-  '迁移宫': '外出机遇、人际格局',
-  '交友宫': '朋友圈、贵人、小人',
-  '官禄宫': '事业成就、社会地位',
-  '田宅宫': '不动产、家庭环境',
-  '福德宫': '精神享受、内心福分',
-  '父母宫': '父母关系、文书契约',
+  '兄弟':   '兄弟关系、合伙人',
+  '夫妻':   '感情关系、婚姻状态',
+  '子女':   '子女缘分、下属关系',
+  '财帛':   '财运来源、收入方式',
+  '疾厄':   '身体健康、意外',
+  '迁移':   '外出机遇、人际格局',
+  '仆役':   '朋友圈、贵人、小人',
+  '官禄':   '事业成就、社会地位',
+  '田宅':   '不动产、家庭环境',
+  '福德':   '精神享受、内心福分',
+  '父母':   '父母关系、文书契约',
 };
-
-/** Render AI markdown: **【Title】** → gold header, **bold** → strong */
-function AiContent({ text, streaming }: { text: string; streaming?: boolean }) {
-  const lines = text.split('\n');
-  return (
-    <div className="space-y-0.5">
-      {lines.map((line, i) => {
-        const sectionMatch = line.match(/^\*\*【(.+?)】\*\*$/);
-        if (sectionMatch) {
-          return (
-            <div key={i} className="pt-3 pb-0.5 first:pt-0">
-              <span className="text-[11px] font-semibold tracking-wide" style={{ color: 'var(--t-gold)' }}>
-                【{sectionMatch[1]}】
-              </span>
-            </div>
-          );
-        }
-        if (line.trim() === '') return <div key={i} className="h-1" />;
-        const parts = line.split(/\*\*(.+?)\*\*/);
-        return (
-          <div key={i} className="text-[11px] leading-relaxed" style={{ color: 'var(--t-text2)' }}>
-            {parts.map((part, j) =>
-              j % 2 === 0
-                ? part
-                : <strong key={j} className="font-medium" style={{ color: 'var(--t-text)' }}>{part}</strong>
-            )}
-          </div>
-        );
-      })}
-      {streaming && (
-        <span
-          className="inline-block w-1.5 h-3 ml-0.5 animate-pulse rounded-sm align-middle"
-          style={{ background: 'var(--t-gold)', opacity: 0.6 }}
-        />
-      )}
-    </div>
-  );
-}
 
 export default function InsightPanel({ chart, selectedPalace, selectedSiHua }: InsightPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -275,44 +241,28 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
   }, [selectedSiHua]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const streamResponse = async (apiMessages: { role: 'user' | 'assistant'; content: string }[]) => {
+    // 先占位一条空的 assistant 消息，流式增量持续覆盖它
+    setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
     try {
-      const res = await fetch('/api/interpret', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chart, messages: apiMessages }),
+      await streamAiText({
+        url: '/api/interpret',
+        body: { chart, messages: apiMessages },
+        onText: (fullText) => {
+          setMessages(prev => {
+            const updated = [...prev];
+            updated[updated.length - 1] = { role: 'assistant', content: fullText };
+            return updated;
+          });
+        },
       });
-      if (res.status === 404) throw new Error('api-missing');
-      if (!res.ok) throw new Error('请求失败');
-      if (!res.body) throw new Error('无响应流');
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let assistantText = '';
-
-      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        for (const line of chunk.split('\n')) {
-          if (!line.startsWith('data: ')) continue;
-          const data = line.slice(6);
-          if (data === '[DONE]') break;
-          try {
-            const delta = JSON.parse(data).delta?.text ?? '';
-            assistantText += delta;
-            setMessages(prev => {
-              const updated = [...prev];
-              updated[updated.length - 1] = { role: 'assistant', content: assistantText };
-              return updated;
-            });
-          } catch { /* skip */ }
-        }
-      }
     } catch (e) {
-      const missing = e instanceof Error && e.message === 'api-missing';
-      setMessages(prev => [...prev, { role: 'assistant', content: missing ? '开源版不含 AI 解读接口（/api/interpret），需要你自己实现后才能用，详见 README「快速开始」。排盘本身不需要任何 API Key。' : '解读失败，请稍后重试。' }]);
+      const kind = e instanceof AiStreamError ? e.kind : 'unknown';
+      // 替换占位消息，避免留下一条空的 assistant 气泡
+      setMessages(prev => {
+        const updated = [...prev];
+        updated[updated.length - 1] = { role: 'assistant', content: aiErrorMessage(kind), isError: true };
+        return updated;
+      });
     } finally {
       setLoading(false);
       loadingRef.current = false;
@@ -348,6 +298,20 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
 
   return (
     <div className="flex flex-col h-full rounded-xl overflow-hidden card-glass">
+
+      {/* ── 面板标题 ── */}
+      <div
+        className="flex-shrink-0 px-3 pt-2.5 pb-2 flex items-center justify-between"
+        style={{ borderBottom: '1px solid var(--t-border)' }}
+      >
+        <div className="flex items-center gap-1.5">
+          <span style={{ color: 'var(--t-gold)', opacity: 0.5, fontSize: 11 }}>✦</span>
+          <span className="text-[10px] tracking-[0.25em] font-medium" style={{ color: 'var(--t-gold)' }}>
+            AI 命理解读
+          </span>
+        </div>
+        <span className="text-[9px]" style={{ color: 'var(--t-faint)' }}>倪海厦《天纪》体系</span>
+      </div>
 
       {/* ── Topic buttons ── */}
       <div className="flex-shrink-0 px-2 pt-2.5 pb-2" style={{ borderBottom: '1px solid var(--t-border)' }}>
@@ -412,6 +376,29 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
 
             // Assistant message
             const isLastMsg = i === messages.length - 1;
+
+            // 错误提示：警示卡样式，与命理解读区分
+            if (msg.isError) {
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rounded-xl px-3 py-2.5 text-[11px] leading-relaxed"
+                  style={{
+                    background: 'var(--ac-bg)',
+                    border: '1px solid var(--ac-bdr)',
+                    color: 'var(--tx-2)',
+                  }}
+                >
+                  <div className="flex items-start gap-1.5">
+                    <span style={{ color: 'var(--ac)' }}>⚠</span>
+                    <span>{msg.content}</span>
+                  </div>
+                </motion.div>
+              );
+            }
+
             return (
               <motion.div
                 key={i}
