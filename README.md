@@ -272,7 +272,7 @@ Expand-Archive combined.zip
 
 ```bash
 # 克隆
-git clone https://github.com/Renhuai123/ziwei-doushu.git
+git clone https://github.com/Xeubad/ziwei-doushu.git
 cd ziwei-doushu
 
 # 安装依赖
@@ -302,7 +302,7 @@ npm test            # 排盘引擎回归（768 盘 × 紫微铁律、夏令时�
 
 ```bash
 # 克隆
-git clone https://github.com/Renhuai123/ziwei-doushu.git
+git clone https://github.com/Xeubad/ziwei-doushu.git
 cd ziwei-doushu
 
 # 配置环境变量（AI 解读 / 合盘分析需要；只看排盘可跳过，没有 .env.local 也能起）

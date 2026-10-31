@@ -63,7 +63,7 @@ Engine code lives in `lib/ziwei/` (entry point: `generateChart()` in `algorithm.
 ## Quick start
 
 ```bash
-git clone https://github.com/Renhuai123/ziwei-doushu.git
+git clone https://github.com/Xeubad/ziwei-doushu.git
 cd ziwei-doushu
 npm ci
 npm run dev          # charting demo at http://localhost:3000/chart
@@ -79,7 +79,7 @@ npm test             # charting regression tests
 Run the production build without a Node toolchain (multi-stage image, non-root, built-in healthcheck, no `node_modules` inside):
 
 ```bash
-git clone https://github.com/Renhuai123/ziwei-doushu.git
+git clone https://github.com/Xeubad/ziwei-doushu.git
 cd ziwei-doushu
 
 # optional: AI configuration (charting works without it)
