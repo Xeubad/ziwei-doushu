@@ -135,6 +135,20 @@ Download from [Releases](https://github.com/Renhuai123/ziwei-doushu/releases/tag
 
 [`docs/tianji-ziwei/`](./docs/tianji-ziwei/) holds **1,848 quotes** from the Zi Wei lectures of *Tian Ji* (14 lectures plus 2 supplements), each linked to the second it was said in the video. Taken from the sister repo [nihai-tianji-corpus](https://github.com/Renhuai123/nihai-tianji-corpus).
 
+## A note on fate: does the same chart mean the same destiny?
+
+> **In one sentence**: a chart is a **tendency model and a tool for self-reflection — not a verdict.** Two people born on the same day, hour and minute with the same gender get exactly the same chart; that is what a deterministic system does (same input, same output). "Same chart, different lives" is the norm.
+
+- **A chart describes the starting hand, not the outcome**: temperament, strengths and weaknesses, the rhythm of fortune — like the same dealt hand. How it is played depends on later choices and effort.
+- **Strictly speaking the charts may differ**: the "same second" in Beijing and in Ürümqi falls in different double-hours (about a 2-hour true-solar-time gap); birthplace, family starting point and relationships diverge from there.
+- **Twins are a natural counter-example**: identical charts, different lives; traditional explanations (birth order, yin/yang dynamics) exist but are not consistent within the system itself.
+
+**Three reminders for users**
+
+1. **Reference, not verdict.** AI interpretations, dataset readings and knowledge-base content are inferences from a chart, offered for self-understanding and decision support. They are **not medical, legal or investment advice.** For major matters, rely on real-world evidence and professional opinion.
+2. **Don't treat the chart as determinism.** If "same chart = same destiny" were taken as an iron law, the system could not be self-consistent; as a "tendency model plus decision reference" it is coherent. There is also no rigorous evidence that the moment of birth determines a life's trajectory.
+3. **Fate does not replace effort.** Among people with the same chart, some live out its ceiling and some its floor — the difference is their own choices. This is the project's own stance: *looking ahead at fate is not about predicting the future, but about knowing yourself — and ultimately writing your own script.*
+
 ## License
 
 | Part | License |
