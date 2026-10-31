@@ -1,0 +1,24 @@
+# 紫微命盘 · Docker Compose
+#
+#   docker compose -f docker/docker-compose.yml up -d
+#   docker compose -f docker/docker-compose.yml logs -f
+#   docker compose -f docker/docker-compose.yml down
+#
+# AI 解读/合盘需要模型 Key：把仓库根目录 .env.example 复制为 .env.local 填好，
+# compose 会自动读入（没有该文件也能起，只是 AI 接口返回 503 未配置）。
+
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: ziwei-doushu:latest
+    container_name: ziwei-doushu
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file:
+      - path: ../.env.local
+        required: false
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped

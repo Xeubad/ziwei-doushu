@@ -1,0 +1,22 @@
+# ─── 构建上下文排除（docker build 的 context 是仓库根目录）───
+# 依赖与产物
+node_modules
+.next
+.vercel
+dist
+*.tsbuildinfo
+
+# 版本控制 / IDE / 系统
+.git
+.github
+.DS_Store
+*.md
+!README.md
+
+# 环境变量绝不进镜像（运行时通过 compose env_file / -e 注入）
+.env
+.env.*
+!.env.example
+
+# 与构建无关的大目录（古籍原文在 lib/classics，倪师语料仅供阅读）
+docs/
