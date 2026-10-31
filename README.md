@@ -296,6 +296,44 @@ npm test            # 排盘引擎回归（768 盘 × 紫微铁律、夏令时�
 
 > **关于 AI 接口。** 排盘、命盘展示、合盘起盘都在浏览器里用本仓库的引擎完成，**不需要任何 API Key**。AI 解读（`/api/interpret`）和合盘 AI 分析（`/api/heming`）已在本仓库实现（`app/api/` + `lib/ai/`，走 OpenAI 兼容协议），在 `.env.local` 里填好模型 API Key 即可启用；没配置 Key 时这两处会提示「AI 服务未配置」，排盘功能不受影响。
 
+### Docker 启动
+
+不想装 Node 环境、或直接部署生产版本，用 Docker 一条命令起（多阶段镜像、非 root 运行、自带健康检查，镜像内不含 `node_modules`）：
+
+```bash
+# 克隆
+git clone https://github.com/Renhuai123/ziwei-doushu.git
+cd ziwei-doushu
+
+# 配置环境变量（AI 解读 / 合盘分析需要；只看排盘可跳过，没有 .env.local 也能起）
+cp .env.example .env.local
+
+# 一键构建 + 启动
+docker compose -f docker/docker-compose.yml up -d
+# 打开 http://localhost:3000
+```
+
+**自行构建镜像 + 启动**（不用 compose，在仓库根目录执行）：
+
+```bash
+# 构建镜像
+docker build -f docker/Dockerfile -t ziwei-doushu .
+
+# 启动容器（--env-file 注入 AI 配置；没有 .env.local 可省略该参数）
+docker run -d --name ziwei-doushu -p 3000:3000 --env-file .env.local ziwei-doushu
+
+# 常用运维
+docker logs -f ziwei-doushu      # 看日志
+docker rm -f ziwei-doushu        # 停止并删除容器
+```
+
+说明：
+
+- 密钥通过运行时注入（`--env-file` / compose 的 `env_file`），**不会打进镜像**（`.dockerignore` 已排除 `.env*`）
+- 端口被占用时换宿主端口：`PORT=3001 docker compose -f docker/docker-compose.yml up -d`，或 `docker run -p 3001:3000 ...`
+- 镜像基于 `node:22-alpine` + Next.js `output: 'standalone'` 三阶段构建（依赖缓存 → 构建 → 精简运行层），构建上下文已排除 `node_modules`、`docs/` 等无关内容
+- 更多细节（健康检查、环境变量表、重建命令）见 [docker/README.md](./docker/README.md)
+
 ---
 
 ## 四、排盘引擎

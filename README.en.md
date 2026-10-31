@@ -72,11 +72,41 @@ npm run typecheck    # TypeScript check
 npm test             # charting regression tests
 ```
 
-**No API key is needed for charting.** The open-source version contains **no backend routes**: AI interpretation (`/api/interpret`) and compatibility analysis (`/api/heming`) return 404 until you implement them yourself.
+**No API key is needed for charting.** Charting, chart display, and compatibility chart generation all run in the browser with this repo's engine. AI interpretation (`/api/interpret`) and compatibility analysis (`/api/heming`) are implemented in this repo (`app/api/` + `lib/ai/`, OpenAI-compatible protocol); fill in a model API key in `.env.local` to enable them. Without a key, these two endpoints report "AI service not configured" (HTTP 503) — charting is unaffected.
+
+### Docker
+
+Run the production build without a Node toolchain (multi-stage image, non-root, built-in healthcheck, no `node_modules` inside):
+
+```bash
+git clone https://github.com/Renhuai123/ziwei-doushu.git
+cd ziwei-doushu
+
+# optional: AI configuration (charting works without it)
+cp .env.example .env.local
+
+# build + start in one step
+docker compose -f docker/docker-compose.yml up -d
+# open http://localhost:3000
+```
+
+**Build the image yourself** (without compose, from the repo root):
+
+```bash
+docker build -f docker/Dockerfile -t ziwei-doushu .
+
+# --env-file injects the AI configuration; omit it if you have no .env.local
+docker run -d --name ziwei-doushu -p 3000:3000 --env-file .env.local ziwei-doushu
+
+docker logs -f ziwei-doushu      # logs
+docker rm -f ziwei-doushu        # stop & remove
+```
+
+Secrets are injected at runtime and never baked into the image. See [docker/README.md](./docker/README.md) for details (healthcheck, env vars, rebuild).
 
 ## What is not included
 
-The interpretation database (`lib/ziwei/db-analysis.ts` is a placeholder), AI prompts, all `/api/*` backend routes, user accounts, payments, and deployment configuration.
+The interpretation database (`lib/ziwei/db-analysis.ts` is a placeholder), the full commercial AI prompts and interpretation content, user accounts, payments, server-side security (signing, anti-abuse, watermarking), and deployment configuration. The AI endpoints included here are a working baseline built from this repo's open knowledge (`lib/ziwei/patterns.ts` and `heming-knowledge.ts`); tune `lib/ai/prompts.ts` to shape your own style.
 
 ## Interpretation dataset v4.0 (674,976 charts × 13 topics, 2026-10-15)
 
