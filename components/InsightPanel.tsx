@@ -364,7 +364,7 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
         {readOnly ? (
           <span
             className="text-[9px] px-2 py-0.5 rounded-full"
-            style={{ color: 'var(--ac)', border: '1px solid var(--ac-bdr)', background: 'var(--ac-bg)' }}
+            style={{ color: 'var(--ac-dim)', border: '1px solid var(--ac-bdr)', background: 'var(--ac-bg)' }}
           >
             分享视图 · 仅供查看
           </span>
@@ -512,7 +512,7 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
           <div className="flex items-center justify-center gap-1.5 text-[10px] flex-wrap" style={{ color: 'var(--t-faint)' }}>
             <span style={{ color: 'var(--t-gold)', opacity: 0.5 }}>✦</span>
             分享视图不可追问 · 想看自己的命盘？
-            <a href="/chart" style={{ color: 'var(--t-gold)', textDecoration: 'none' }}>去排盘 →</a>
+            <a href="/chart" style={{ color: 'var(--ac-dim)', textDecoration: 'none' }}>去排盘 →</a>
           </div>
         </div>
       ) : (

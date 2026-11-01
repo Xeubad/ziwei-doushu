@@ -73,7 +73,7 @@ export default function ShareChartDialog({ open, birthInfo, analyses, onClose }:
             {/* 标题 */}
             <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--bdr)' }}>
               <div>
-                <div className="text-[10px] tracking-[0.25em]" style={{ color: 'var(--ac)' }}>SHARE</div>
+                <div className="text-[10px] tracking-[0.25em]" style={{ color: 'var(--ac-dim)' }}>SHARE</div>
                 <h3 className="text-[15px] font-semibold mt-0.5" style={{ color: 'var(--tx-0)' }}>分享此命盘</h3>
               </div>
               <button
@@ -109,8 +109,9 @@ export default function ShareChartDialog({ open, birthInfo, analyses, onClose }:
                     onClick={() => copy(link, 'link')}
                     className="flex-shrink-0 px-3 py-2 rounded-lg text-[11px] font-medium"
                     style={{
-                      background: 'var(--ac)', border: 'none', color: '#fff',
-                      cursor: 'pointer', minWidth: 64,
+                      // 金底深字：亮色主题下白字对比度不足，深色字在两种主题下都清晰
+                      background: 'var(--ac)', border: 'none', color: '#2a1a00',
+                      fontWeight: 600, cursor: 'pointer', minWidth: 64,
                     }}
                   >
                     {copied === 'link' ? '已复制 ✓' : '复制'}
@@ -124,7 +125,7 @@ export default function ShareChartDialog({ open, birthInfo, analyses, onClose }:
                   <span>分享码（{code.length} 字符）</span>
                   <button
                     onClick={() => copy(code, 'code')}
-                    style={{ background: 'transparent', border: 'none', color: 'var(--ac)', cursor: 'pointer', fontSize: 10 }}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--ac-dim)', cursor: 'pointer', fontSize: 10 }}
                   >
                     {copied === 'code' ? '已复制 ✓' : '复制码'}
                   </button>

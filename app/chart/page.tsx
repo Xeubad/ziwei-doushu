@@ -217,10 +217,11 @@ export default function ChartPage() {
               display: 'flex', alignItems: 'center', gap: 5,
               padding: '5px 12px', borderRadius: 'var(--r-pill)',
               border: '1px solid var(--ac-bdr)', background: 'var(--ac-bg)',
-              color: 'var(--ac)', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap',
+              // 亮色主题下 --ac 在浅金底上对比度不足，用 --ac-dim（暗金/亮金随主题翻转）
+              color: 'var(--ac-dim)', fontSize: 11, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap',
               transition: 'background 0.15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(212,168,67,0.16)'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(212,168,67,0.18)'; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'var(--ac-bg)'; }}
           >
             <span style={{ fontSize: 12 }}>⤴</span>
