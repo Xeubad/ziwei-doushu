@@ -29,6 +29,7 @@ compose 会自动读入仓库根目录的 `.env.local`（没有也能启动）�
 ## 常用操作
 
 ```bash
+docker compose -f docker/docker-compose.yml ps        # 查看容器与健康状态
 docker compose -f docker/docker-compose.yml logs -f   # 看日志
 docker compose -f docker/docker-compose.yml down      # 停止
 docker compose -f docker/docker-compose.yml up -d --build   # 改代码后重建
