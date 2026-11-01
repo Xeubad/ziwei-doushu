@@ -104,6 +104,10 @@ docker rm -f ziwei-doushu        # stop & remove
 
 Secrets are injected at runtime and never baked into the image. See [docker/README.md](./docker/README.md) for details (healthcheck, env vars, rebuild).
 
+### Chart sharing (optional)
+
+A chart can be shared via a code link (`/chart?d=...`). The code carries the birth data plus a snapshot of the AI readings — **never the owner's questions** — and the recipient gets a read-only view (no follow-up chat). The code is Base64, not encryption: treat it as public. The owner's own conversation stays in `localStorage` and is restored next time.
+
 ## What is not included
 
 The interpretation database (`lib/ziwei/db-analysis.ts` is a placeholder), the full commercial AI prompts and interpretation content, user accounts, payments, server-side security (signing, anti-abuse, watermarking), and deployment configuration. The AI endpoints included here are a working baseline built from this repo's open knowledge (`lib/ziwei/patterns.ts` and `heming-knowledge.ts`); tune `lib/ai/prompts.ts` to shape your own style.
