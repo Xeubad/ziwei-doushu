@@ -12,6 +12,9 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+      args:
+        # 构建期站点地址（sitemap/canonical 用）；改域名需带此参数重建镜像
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
     image: ziwei-doushu:latest
     container_name: ziwei-doushu
     ports:

@@ -335,6 +335,13 @@ docker rm -f ziwei-doushu        # 停止并删除容器
 - 镜像基于 `node:22-alpine` + Next.js `output: 'standalone'` 三阶段构建（依赖缓存 → 构建 → 精简运行层），构建上下文已排除 `node_modules`、`docs/` 等无关内容
 - 更多细节（健康检查、环境变量表、重建命令）见 [docker/README.md](./docker/README.md)
 
+**代码更新后**（镜像不可变，不要在容器内改代码）：
+
+```bash
+git pull
+docker compose -f docker/docker-compose.yml up -d --build   # 重建镜像并替换容器
+```
+
 ---
 
 ## 四、排盘引擎

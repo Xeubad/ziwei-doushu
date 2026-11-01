@@ -19,8 +19,13 @@ RUN npm ci
 # ── 2. 构建层 ──
 FROM node:22-alpine AS build
 WORKDIR /app
+# NEXT_PUBLIC_SITE_URL 是构建期变量（sitemap / canonical 等静态产物用）：
+#   docker compose -f docker/docker-compose.yml up -d --build
+#   NEXT_PUBLIC_SITE_URL=https://your.site docker compose ... up -d --build
+ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ENV NEXT_TELEMETRY_DISABLED=1 \
-    DOCKER_BUILD=1
+    DOCKER_BUILD=1 \
+    NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

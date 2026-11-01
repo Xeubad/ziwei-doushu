@@ -104,6 +104,13 @@ docker rm -f ziwei-doushu        # stop & remove
 
 Secrets are injected at runtime and never baked into the image. See [docker/README.md](./docker/README.md) for details (healthcheck, env vars, rebuild).
 
+**After code updates** (images are immutable — don't edit files inside the container):
+
+```bash
+git pull
+docker compose -f docker/docker-compose.yml up -d --build   # rebuild image + replace container
+```
+
 ### Chart sharing (optional)
 
 A chart can be shared via a code link (`/chart?d=...`). The code carries the birth data plus a snapshot of the AI readings — **never the owner's questions** — and the recipient gets a read-only view (no follow-up chat). The code is Base64, not encryption: treat it as public. The owner's own conversation stays in `localStorage` and is restored next time.

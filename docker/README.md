@@ -34,6 +34,57 @@ docker compose -f docker/docker-compose.yml down      # 停止
 docker compose -f docker/docker-compose.yml up -d --build   # 改代码后重建
 ```
 
+## 更新部署（代码更新后）
+
+容器镜像不可变，**不要在容器内改代码**（重启即丢）。更新 = 用新代码重建镜像，再用新镜像重建容器：
+
+```bash
+cd ziwei-doushu
+git pull                                                      # 拉取新代码
+docker compose -f docker/docker-compose.yml up -d --build     # 重建镜像 + 替换容器
+```
+
+- 构建在旧容器继续服务期间完成，切换只有几秒停机
+- `package-lock.json` 没变时依赖层命中缓存，重建通常十几秒
+- 应用无状态（对话存在浏览器 localStorage），重建容器不影响用户数据
+
+只用原生 `docker run` 的等价流程：
+
+```bash
+git pull
+docker build -f docker/Dockerfile -t ziwei-doushu:$(date +%Y%m%d) .
+docker rm -f ziwei-doushu
+docker run -d --name ziwei-doushu -p 3000:3000 --env-file .env.local ziwei-doushu:$(date +%Y%m%d)
+```
+
+### 回滚
+
+保留旧 tag（上面按日期打 tag）即可秒级回滚：
+
+```bash
+docker images ziwei-doushu                      # 查看历史版本
+docker rm -f ziwei-doushu
+docker run -d --name ziwei-doushu -p 3000:3000 --env-file .env.local ziwei-doushu:<旧tag>
+```
+
+### 只改配置（不换代码）
+
+改 `.env.local`（AI Key / 访问口令 / 限流）后重建容器即可，**不需要重新构建镜像**：
+
+```bash
+docker compose -f docker/docker-compose.yml up -d --force-recreate
+```
+
+### 换域名
+
+`NEXT_PUBLIC_SITE_URL` 是构建期变量（打进 sitemap / canonical），换域名要带参数重建：
+
+```bash
+NEXT_PUBLIC_SITE_URL=https://your.site docker compose -f docker/docker-compose.yml up -d --build
+```
+
+分享链接用的是访问时的域名（`window.location.origin`），不受此项影响、无需重建。
+
 ## 实现说明
 
 - **多阶段构建**（`docker/Dockerfile`）：`deps` 层缓存 npm 依赖 → `build` 层 `next build` → `runner` 层只拷贝 `.next/standalone` 产物 + 静态资源

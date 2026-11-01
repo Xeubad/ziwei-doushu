@@ -27,7 +27,9 @@ export default function ShareChartDialog({ open, birthInfo, analyses, onClose }:
   const { code, link } = useMemo(() => {
     if (!open) return { code: '', link: '' };
     const c = encodeShareCode({ birthInfo, analyses });
-    return { code: c, link: `${SITE_URL}/chart?d=${c}` };
+    // 用运行时域名生成分享链接：Docker 部署换域名无需重新构建镜像
+    const origin = typeof window !== 'undefined' ? window.location.origin : SITE_URL;
+    return { code: c, link: `${origin}/chart?d=${c}` };
   }, [open, birthInfo, analyses]);
 
   useEffect(() => {
