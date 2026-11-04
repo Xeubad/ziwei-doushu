@@ -45,11 +45,13 @@ function checkToken(req: NextRequest): Response | null {
 }
 
 function checkRateLimit(req: NextRequest, fallbackPerMinute: number): Response | null {
-  const configured = Number(process.env.AI_RATE_LIMIT_PER_MIN ?? '');
+  // 注意：Number('') === 0，未设置的环境变量必须先判空，否则会被当成「0=不限速」
+  const raw = (process.env.AI_RATE_LIMIT_PER_MIN ?? '').trim();
+  const configured = raw === '' ? NaN : Number(raw);
   const perMinute = Number.isFinite(configured) && configured >= 0
     ? configured
     : fallbackPerMinute;
-  if (perMinute === 0) return null; // 0 = 不限速
+  if (perMinute === 0) return null; // 显式配 0 = 不限速
 
   const now = Date.now();
   const ip = clientIp(req);

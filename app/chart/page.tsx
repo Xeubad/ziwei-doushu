@@ -59,17 +59,21 @@ export default function ChartPage() {
 
     const code = new URLSearchParams(window.location.search).get('d');
     if (!code) return;
-    const decoded = decodeShareCode(code);
-    if (!decoded) {
-      setShareError('分享码无效或已损坏，请向分享者重新获取。');
-      return;
-    }
-    try {
-      setChart(generateChart(decoded.birthInfo));
-      setSharedAnalyses(decoded.analyses);
-    } catch {
-      setShareError('分享码中的命盘数据有误，无法还原盘面。');
-    }
+    let cancelled = false;
+    decodeShareCode(code).then(decoded => {
+      if (cancelled) return;
+      if (!decoded) {
+        setShareError('分享码无效或已损坏，请向分享者重新获取。');
+        return;
+      }
+      try {
+        setChart(generateChart(decoded.birthInfo));
+        setSharedAnalyses(decoded.analyses);
+      } catch {
+        setShareError('分享码中的命盘数据有误，无法还原盘面。');
+      }
+    });
+    return () => { cancelled = true; };
   }, []);
 
   const onAnalysesChange = useCallback((a: string[]) => setAnalyses(a), []);

@@ -20,7 +20,7 @@ docker run -d --name ziwei-doushu -p 3000:3000 --env-file .env.local ziwei-doush
 |---|---|---|
 | `AI_PROVIDER` / `DEEPSEEK_API_KEY` 等 | 否 | AI 解读 / 合盘分析的模型配置，见根目录 `.env.example`。不配则排盘照常可用，AI 接口返回 `503 ai-not-configured` |
 | `AI_ACCESS_TOKEN` | 否 | AI 接口访问口令；设置后请求须携带 `x-ai-token` 头（网页端会弹窗向用户收集） |
-| `AI_RATE_LIMIT_PER_MIN` | 否 | 每 IP 每分钟请求上限（`0` 不限），默认解读 20 / 合盘 10 |
+| `AI_RATE_LIMIT_PER_MIN` | 否 | 每 IP 每分钟请求上限（`0` 不限），默认解读 20 / 合盘 10。**限流是单容器内存计数**，多副本部署时阈值按实例数成倍放大，需要全局限流请换 Redis 等共享存储 |
 | `NEXT_PUBLIC_SITE_URL` | 否 | 站点对外地址（SEO canonical / 分享），默认 `http://localhost:3000` |
 | `PORT` | 否 | compose 映射到宿主机的端口，默认 `3000` |
 

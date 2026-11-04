@@ -15,6 +15,7 @@ import { NextRequest } from 'next/server';
 import type { ZiweiChart } from '@/lib/ziwei/types';
 import { resolveAiConfig } from '@/lib/ai/config';
 import { guardAiRequest } from '@/lib/ai/guard';
+import { readJsonBody } from '@/lib/ai/body';
 import { buildInterpretSystemPrompt } from '@/lib/ai/prompts';
 import { streamChatCompletion, type ChatMessage } from '@/lib/ai/sse';
 
@@ -45,12 +46,14 @@ export async function POST(req: NextRequest) {
   const denied = guardAiRequest(req, 'interpret');
   if (denied) return denied;
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return Response.json({ error: 'invalid-request' }, { status: 400 });
+  const parsed = await readJsonBody(req);
+  if (!parsed.ok) {
+    return Response.json(
+      { error: 'invalid-request', detail: parsed.tooLarge ? '请求体过大' : 'JSON 不合法' },
+      { status: 400 },
+    );
   }
+  const body = parsed.body;
 
   const { chart, messages } = (body ?? {}) as { chart?: unknown; messages?: unknown };
   if (!isZiweiChart(chart)) {

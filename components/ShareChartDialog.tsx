@@ -7,7 +7,7 @@
  * 接收方打开链接只能看（盘面 + 分析），不能继续问 AI。
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { encodeShareCode } from '@/lib/ziwei/share-codec';
 import { SITE_URL } from '@/lib/site';
@@ -23,13 +23,21 @@ interface ShareChartDialogProps {
 
 export default function ShareChartDialog({ open, birthInfo, analyses, onClose }: ShareChartDialogProps) {
   const [copied, setCopied] = useState<'link' | 'code' | null>(null);
+  const [code, setCode] = useState('');
+  const [link, setLink] = useState('');
 
-  const { code, link } = useMemo(() => {
-    if (!open) return { code: '', link: '' };
-    const c = encodeShareCode({ birthInfo, analyses });
-    // 用运行时域名生成分享链接：Docker 部署换域名无需重新构建镜像
-    const origin = typeof window !== 'undefined' ? window.location.origin : SITE_URL;
-    return { code: c, link: `${origin}/chart?d=${c}` };
+  // 编码是异步（gzip + crc32）：打开弹窗时生成，关闭时清空
+  useEffect(() => {
+    if (!open) { setCode(''); setLink(''); return; }
+    let cancelled = false;
+    encodeShareCode({ birthInfo, analyses }).then(c => {
+      if (cancelled) return;
+      // 用运行时域名生成分享链接：Docker 部署换域名无需重新构建镜像
+      const origin = typeof window !== 'undefined' ? window.location.origin : SITE_URL;
+      setCode(c);
+      setLink(`${origin}/chart?d=${c}`);
+    });
+    return () => { cancelled = true; };
   }, [open, birthInfo, analyses]);
 
   useEffect(() => {
