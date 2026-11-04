@@ -1,5 +1,4 @@
 'use client';
-import { motion } from 'framer-motion';
 import type { ZiweiChart } from '@/lib/ziwei/types';
 import { detectPatterns } from '@/lib/ziwei/patterns-core';
 
@@ -16,11 +15,8 @@ export default function PatternsCard({ chart }: { chart: ZiweiChart }) {
   if (patterns.length === 0) return null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="card-glass rounded-xl p-4 mb-4"
+    <div
+      className="anim-fade-up card-glass rounded-xl p-4 mb-4"
     >
       <div className="text-[10px] tracking-widest mb-3 flex items-center gap-2" style={{ color: 'var(--t-faint)' }}>
         <span style={{ color: 'var(--t-gold)', opacity: 0.6 }}>◉</span>
@@ -31,12 +27,10 @@ export default function PatternsCard({ chart }: { chart: ZiweiChart }) {
         {patterns.map((p, i) => {
           const lv = LevelColor[p.level] ?? 'var(--lv-neutral)';
           return (
-            <motion.div
+            <div
               key={`${p.name}-${i}`}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.04 }}
-              className="card-inner rounded-lg p-3"
+              className="anim-slide-left card-inner rounded-lg p-3"
+              style={{ animationDelay: `${i * 0.04}s` }}
             >
               <div className="flex items-center gap-2 mb-1.5">
                 <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: lv }} />
@@ -93,10 +87,10 @@ export default function PatternsCard({ chart }: { chart: ZiweiChart }) {
                   出处 · {p.source}
                 </div>
               )}
-            </motion.div>
+            </div>
           );
         })}
       </div>
-    </motion.div>
+    </div>
   );
 }

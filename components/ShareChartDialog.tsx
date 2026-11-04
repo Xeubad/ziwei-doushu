@@ -8,7 +8,6 @@
  */
 
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { encodeShareCode } from '@/lib/ziwei/share-codec';
 import { SITE_URL } from '@/lib/site';
 import { BRANCHES } from '@/lib/ziwei/constants';
@@ -61,22 +60,15 @@ export default function ShareChartDialog({ open, birthInfo, analyses, onClose }:
   const dateText = `${birthInfo.year}-${String(birthInfo.month).padStart(2, '0')}-${String(birthInfo.day).padStart(2, '0')} ${BRANCHES[birthInfo.hour]}时 ${birthInfo.gender === 'male' ? '男' : '女'}`;
 
   return (
-    <AnimatePresence>
+    <>
       {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+        <div
+          className="anim-overlay fixed inset-0 z-[100] flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
           onClick={onClose}
         >
-          <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.98 }}
-            transition={{ duration: 0.2 }}
-            className="w-full max-w-lg rounded-2xl overflow-hidden"
+          <div
+            className="anim-pop-center w-full max-w-lg rounded-2xl overflow-hidden"
             style={{ background: 'var(--bg-card)', border: '1px solid var(--bdr-med)', boxShadow: 'var(--sh-lg)' }}
             onClick={e => e.stopPropagation()}
           >
@@ -155,9 +147,9 @@ export default function ShareChartDialog({ open, birthInfo, analyses, onClose }:
                 码为分享时的快照，之后继续对话不会自动同步。
               </p>
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }

@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
 import BirthForm from '@/components/BirthForm';
 import ChartBoard from '@/components/ChartBoard';
 import ChartSummary from '@/components/ChartSummary';
@@ -112,10 +111,8 @@ export default function ChartPage() {
   if (!chart) {
     return (
       <main className="container-page" style={{ maxWidth: 720, paddingTop: 56, paddingBottom: 80 }}>
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
+        <div
+          className="anim-fade-up"
           style={{ textAlign: 'center', marginBottom: 36 }}
         >
           <div className="label-section" style={{ marginBottom: 12 }}>Zi Wei Dou Shu</div>
@@ -148,15 +145,11 @@ export default function ChartPage() {
               ↻ 继续上次：{recent.year}-{String(recent.month).padStart(2, '0')}-{String(recent.day).padStart(2, '0')} {BRANCHES[recent.hour]}时 {recent.gender === 'male' ? '男' : '女'}
             </button>
           )}
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
-        >
+        <div className="anim-fade-up" style={{ animationDelay: '0.1s' }}>
           <BirthForm onSubmit={enterChart} />
-        </motion.div>
+        </div>
 
         <p style={{ textAlign: 'center', color: 'var(--tx-3)', fontSize: 12, lineHeight: 1.8, marginTop: 24 }}>
           排盘在浏览器本地完成，不需要任何 API Key。<br />

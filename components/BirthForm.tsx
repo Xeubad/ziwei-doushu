@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+// 表单入场/错误提示等动画改用 globals.css 的 .anim-* 工具类，不再依赖 framer-motion
 import type { BirthInfo } from '@/lib/ziwei/types';
 import { SHICHEN } from '@/lib/ziwei/constants';
 import Select, { type SelectOption } from '@/components/Select';
@@ -180,31 +180,23 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
   } as React.CSSProperties;
 
   function FieldError({ msg }: { msg: string }) {
+    if (!msg) return null;
     return (
-      <AnimatePresence>
-        {msg && (
-          <motion.p
-            initial={{ opacity: 0, y: -4, height: 0 }}
-            animate={{ opacity: 1, y: 0, height: 'auto' }}
-            exit={{ opacity: 0, y: -4, height: 0 }}
-            transition={{ duration: 0.18 }}
-            style={{ color: errorClr, fontSize: '11px', marginTop: '4px' }}
-          >
-            ✕ {msg}
-          </motion.p>
-        )}
-      </AnimatePresence>
+      <p
+        className="anim-fade-down"
+        style={{ color: errorClr, fontSize: '11px', marginTop: '4px', animationDuration: '0.18s' }}
+      >
+        ✕ {msg}
+      </p>
     );
   }
 
   const showErr = (field: string) => touched[field] || submitAttempted;
 
   return (
-    <motion.form
+    <form
       onSubmit={handleSubmit}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      className="anim-fade-up"
       style={{ background: bg, border: `1px solid ${border}`, borderRadius: '24px', padding: '28px', backdropFilter: 'blur(20px)' }}
     >
       {/* 标题 */}
@@ -215,11 +207,13 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
       {/* ── 进度条 ── */}
       <div style={{ display: 'flex', gap: '4px', marginBottom: '20px' }}>
         {steps.map((done, i) => (
-          <motion.div
+          <div
             key={i}
-            animate={{ background: done ? 'var(--ac)' : 'var(--ac-bdr)' }}
-            transition={{ duration: 0.3 }}
-            style={{ flex: 1, height: '2px', borderRadius: '2px' }}
+            style={{
+              flex: 1, height: '2px', borderRadius: '2px',
+              background: done ? 'var(--ac)' : 'var(--ac-bdr)',
+              transition: 'background 0.3s',
+            }}
           />
         ))}
       </div>
@@ -293,29 +287,23 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
             disabled={!form.province}
           />
         </div>
-        <AnimatePresence mode="wait">
-          {form.province ? (
-            <motion.p
-              key="location-info"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              style={{ fontSize: '10px', color: 'var(--tx-3)', marginTop: '5px' }}
-            >
-              {form.city || '（请选择城市）'} · 经度 {form.longitude.toFixed(1)}°E · 时差 {offsetMin > 0 ? '+' : ''}{offsetMin} 分钟
-            </motion.p>
-          ) : (
-            <motion.p
-              key="location-hint"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              style={{ fontSize: '10px', color: 'var(--tx-3)', marginTop: '5px' }}
-            >
-              * 倪海厦批命用真太阳时，建议填写出生地以自动校正时辰
-            </motion.p>
-          )}
-        </AnimatePresence>
+        {form.province ? (
+          <p
+            key="location-info"
+            className="anim-fade-in"
+            style={{ fontSize: '10px', color: 'var(--tx-3)', marginTop: '5px', animationDuration: '0.25s' }}
+          >
+            {form.city || '（请选择城市）'} · 经度 {form.longitude.toFixed(1)}°E · 时差 {offsetMin > 0 ? '+' : ''}{offsetMin} 分钟
+          </p>
+        ) : (
+          <p
+            key="location-hint"
+            className="anim-fade-in"
+            style={{ fontSize: '10px', color: 'var(--tx-3)', marginTop: '5px', animationDuration: '0.25s' }}
+          >
+            * 倪海厦批命用真太阳时，建议填写出生地以自动校正时辰
+          </p>
+        )}
       </div>
 
       {/* ── 出生时间 ── */}
@@ -369,11 +357,11 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
             const isMale = g === 'male';
             const accent = isMale ? '37,99,235' : '225,29,72';
             return (
-              <motion.button
+              <button
                 key={g}
                 type="button"
                 onClick={() => setForm({ ...form, gender: g })}
-                whileTap={{ scale: 0.97 }}
+                className="tap-subtle"
                 style={{
                   flex: 1,
                   padding: '11px',
@@ -388,21 +376,15 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
                 }}
               >
                 {isMale ? '♂ 男' : '♀ 女'}
-              </motion.button>
+              </button>
             );
           })}
         </div>
       </div>
 
       {/* ── 确认信息 Summary Chip ── */}
-      <AnimatePresence>
-        {showSummary && (
-          <motion.div
-            initial={{ opacity: 0, y: -8, height: 0, marginBottom: 0 }}
-            animate={{ opacity: 1, y: 0, height: 'auto', marginBottom: 12 }}
-            exit={{ opacity: 0, y: -8, height: 0, marginBottom: 0 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
-          >
+      {showSummary && (
+          <div className="anim-fade-down" style={{ marginBottom: 12, animationDuration: '0.25s' }}>
             <div style={{
               background: summaryBg,
               border: `1px solid ${summaryBorder}`,
@@ -417,16 +399,14 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
                 {summaryText}
               </span>
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
 
       {/* ── 提交按钮 ── */}
-      {!hideSubmit && <motion.button
+      {!hideSubmit && <button
         type="submit"
         disabled={loading}
-        whileHover={loading ? {} : { scale: 1.01 }}
-        whileTap={loading ? {} : { scale: 0.98 }}
+        className="hover-subtle tap-subtle"
         style={{
           width: '100%',
           padding: '14px',
@@ -444,15 +424,14 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
       >
         {loading ? (
           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-            <motion.span
-              animate={{ rotate: 360 }}
-              transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+            <span
+              className="anim-spin"
               style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%' }}
             />
             紫微起盘中…
           </span>
         ) : '立即起盘 · 解命运密码'}
-      </motion.button>}
-    </motion.form>
+      </button>}
+    </form>
   );
 }

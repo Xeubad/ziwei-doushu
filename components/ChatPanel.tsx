@@ -1,6 +1,5 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import type { ZiweiChart } from '@/lib/ziwei/types';
 import AiContent from './AiContent';
 import { streamAiText, aiErrorMessage, AiStreamError } from '@/lib/ai/client';
@@ -82,22 +81,21 @@ export default function ChatPanel({ chart }: ChatPanelProps) {
       {/* 消息列表 */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
         {messages.length === 0 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-8">
+          <div className="anim-fade-in text-center py-8">
             <div className="text-4xl mb-3" style={{ color: 'var(--t-gold)', opacity: 0.15 }}>✦</div>
             <p className="text-xs leading-relaxed" style={{ color: 'var(--t-faint)' }}>
               命盘已生成，可直接提问<br />
               或从下方选择常见问题开始解读
             </p>
-          </motion.div>
+          </div>
         )}
 
-        <AnimatePresence>
+        <>
           {messages.map((msg, i) => (
-            <motion.div
+            <div
               key={i}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`anim-fade-up flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              style={{ animationDuration: '0.3s' }}
             >
               <div
                 className="max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed"
@@ -122,9 +120,9 @@ export default function ChatPanel({ chart }: ChatPanelProps) {
                   </div>
                 )}
               </div>
-            </motion.div>
+            </div>
           ))}
-        </AnimatePresence>
+        </>
       </div>
 
       {/* 预设问题 */}

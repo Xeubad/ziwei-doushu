@@ -1,28 +1,74 @@
 'use client';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, useScroll, useTransform, useInView, AnimatePresence } from 'framer-motion';
 import StarField from '@/components/StarField';
 import { useTheme, type Theme } from '@/components/ThemeProvider';
 import AnnouncementModal from '@/components/AnnouncementModal';
 
-// ─── 滚动入场 wrapper ────────────────────────────────────
+// ─── 滚动入场 wrapper（IntersectionObserver 一次性触发，替代 framer-motion 的 useInView/whileInView）──
+const REVEAL_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
+function useOnceInView<T extends HTMLElement>(margin = '-80px') {
+  const ref = useRef<T>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setInView(true);
+        io.disconnect(); // once: true
+      }
+    }, { rootMargin: margin });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [margin]);
+  return { ref, inView };
+}
+
 function FadeIn({
   children, delay = 0, y = 28, className = '',
 }: {
   children: React.ReactNode; delay?: number; y?: number; className?: string;
 }) {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: '-80px' });
+  const { ref, inView } = useOnceInView<HTMLDivElement>();
   return (
-    <motion.div ref={ref}
-      initial={{ opacity: 0, y }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
+    <div ref={ref}
       className={className}
+      style={{
+        opacity: inView ? 1 : 0,
+        transform: inView ? 'translateY(0)' : `translateY(${y}px)`,
+        transition: `opacity 0.6s ${REVEAL_EASE} ${delay}s, transform 0.6s ${REVEAL_EASE} ${delay}s`,
+      }}
     >
       {children}
-    </motion.div>
+    </div>
+  );
+}
+
+/** whileInView 替代：进入视口时淡入+归位（x/y 可选），一次性 */
+function Reveal({
+  children, delay = 0, y = 0, x = 0, className = '', style,
+}: {
+  children: React.ReactNode; delay?: number; y?: number; x?: number;
+  className?: string; style?: CSSProperties;
+}) {
+  const { ref, inView } = useOnceInView<HTMLDivElement>();
+  const { opacity: styleOpacity, transform: styleTransform, transition: _t, ...rest } = style ?? {};
+  return (
+    <div ref={ref}
+      className={className}
+      style={{
+        ...rest,
+        opacity: inView ? (styleOpacity ?? 1) : 0,
+        transform: inView
+          ? (styleTransform ?? 'none')
+          : `translate(${x}px, ${y}px)${styleTransform ? ` ${styleTransform}` : ''}`,
+        transition: `opacity 0.5s ${REVEAL_EASE} ${delay}s, transform 0.5s ${REVEAL_EASE} ${delay}s`,
+      }}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -40,16 +86,14 @@ function ThemeToggle() {
   const { theme, toggle } = useTheme();
   const isDark = theme === 'dark';
   return (
-    <motion.button
+    <button
       onClick={toggle}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.93 }}
+      className="hover-grow flex items-center gap-2 px-3 py-1.5 rounded-full border"
       aria-label={isDark ? '切换亮色主题' : '切换暗色主题'}
-      className="flex items-center gap-2 px-3 py-1.5 rounded-full border"
       style={{
         borderColor: isDark ? 'rgba(212,168,67,0.3)' : 'rgba(140,100,20,0.35)',
         background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,252,242,0.85)',
-        transition: 'background 0.35s ease, border-color 0.35s ease',
+        transition: 'background 0.35s ease, border-color 0.35s ease, transform 0.15s ease-out',
       }}
     >
       <div className="relative w-10 h-5 rounded-full flex-shrink-0"
@@ -57,11 +101,12 @@ function ThemeToggle() {
           background: isDark ? 'rgba(12,24,64,0.95)' : 'rgba(230,195,80,0.55)',
           transition: 'background 0.35s ease',
         }}>
-        <motion.div
-          animate={{ x: isDark ? 2 : 22 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+        <div
           className="absolute top-1 w-3.5 h-3.5 rounded-full"
           style={{
+            transform: `translateX(${isDark ? 2 : 22}px)`,
+            // 近似原 spring(stiffness 400, damping 28) 的回弹感
+            transition: 'transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)',
             background: isDark
               ? 'linear-gradient(135deg, #b8a050, #e8d090)'
               : 'linear-gradient(135deg, #e89010, #f8d050)',
@@ -75,7 +120,7 @@ function ThemeToggle() {
         }}>
         {isDark ? '暗色' : '亮色'}
       </span>
-    </motion.button>
+    </button>
   );
 }
 
@@ -284,10 +329,8 @@ function FeatureVisual({ index, colors: c }: { index: number; colors: ReturnType
             const isCenter = [5, 6, 9, 10].includes(i);
             const isActive = [0, 3, 12, 15].includes(i);
             return (
-              <motion.div key={i}
-                initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}
-                transition={{ delay: i * 0.03 }}
-                className="h-14 rounded-sm flex items-center justify-center text-xs transition-all duration-300"
+              <Reveal key={i} delay={i * 0.03}
+                className="h-14 rounded-sm flex items-center justify-center text-xs"
                 style={{
                   border: `1px solid ${isActive ? c.goldLine : c.cardBorder}`,
                   background: isCenter ? 'transparent' : isActive ? c.starBg : c.featureBg,
@@ -295,7 +338,7 @@ function FeatureVisual({ index, colors: c }: { index: number; colors: ReturnType
                   opacity: isCenter ? 0 : 1,
                 }}>
                 {isActive ? '★' : ''}
-              </motion.div>
+              </Reveal>
             );
           })}
         </div>
@@ -319,11 +362,9 @@ function FeatureVisual({ index, colors: c }: { index: number; colors: ReturnType
               style={{ color: c.textFaint }}>{group.group}</div>
             <div className="flex flex-wrap gap-1.5">
               {group.stars.map(s => (
-                <motion.button key={s}
+                <button key={s}
                   onClick={() => setSel(sel === s ? null : s)}
-                  whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
-                  transition={{ duration: 0.1 }}
-                  className="text-xs px-2 py-1 rounded-md cursor-pointer"
+                  className="hover-grow tap-shrink text-xs px-2 py-1 rounded-md cursor-pointer"
                   style={{
                     border: `1px solid ${sel === s ? c.goldSolid : c.goldLine}`,
                     color: c.goldSolid,
@@ -331,7 +372,7 @@ function FeatureVisual({ index, colors: c }: { index: number; colors: ReturnType
                     fontWeight: sel === s ? 600 : 400,
                   }}>
                   {s}
-                </motion.button>
+                </button>
               ))}
             </div>
           </div>
@@ -341,11 +382,9 @@ function FeatureVisual({ index, colors: c }: { index: number; colors: ReturnType
             style={{ color: c.textFaint }}>四化飞星</div>
           <div className="flex gap-2 flex-wrap">
             {[['化禄', 'rgba(52,211,153,0.7)'], ['化权', 'rgba(96,165,250,0.7)'], ['化科', 'rgba(250,204,21,0.7)'], ['化忌', 'rgba(248,113,113,0.7)']].map(([label, color]) => (
-              <motion.button key={label}
+              <button key={label}
                 onClick={() => setSel(sel === label ? null : label)}
-                whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
-                transition={{ duration: 0.1 }}
-                className="text-xs px-2.5 py-1 rounded-md cursor-pointer"
+                className="hover-grow tap-shrink text-xs px-2.5 py-1 rounded-md cursor-pointer"
                 style={{
                   border: `1px solid ${color}`,
                   color,
@@ -353,25 +392,21 @@ function FeatureVisual({ index, colors: c }: { index: number; colors: ReturnType
                   fontWeight: sel === label ? 600 : 400,
                 }}>
                 {label}
-              </motion.button>
+              </button>
             ))}
           </div>
         </div>
-        <AnimatePresence mode="wait">
-          {selInfo && (
-            <motion.div key={sel}
-              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-              className="rounded-xl p-4 mt-1.5"
-              style={{ border: `1px solid ${c.goldLine}`, background: c.featureBg }}>
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-sm font-semibold" style={{ color: c.goldSolid }}>{sel}</span>
-                <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ color: c.tagText, border: `1px solid ${c.goldLine}` }}>{selInfo.attr}</span>
-              </div>
-              <p className="text-xs leading-relaxed" style={{ color: c.textSecond }}>{selInfo.brief}</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {selInfo && (
+          <div key={sel}
+            className="anim-fade-up rounded-xl p-4 mt-1.5"
+            style={{ border: `1px solid ${c.goldLine}`, background: c.featureBg, animationDuration: '0.2s' }}>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-sm font-semibold" style={{ color: c.goldSolid }}>{sel}</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ color: c.tagText, border: `1px solid ${c.goldLine}` }}>{selInfo.attr}</span>
+            </div>
+            <p className="text-xs leading-relaxed" style={{ color: c.textSecond }}>{selInfo.brief}</p>
+          </div>
+        )}
       </div>
     );
   }
@@ -385,10 +420,9 @@ function FeatureVisual({ index, colors: c }: { index: number; colors: ReturnType
     return (
       <div className="flex flex-col gap-2 h-full justify-center">
         {msgs.map((m, i) => (
-          <motion.div key={i}
-            initial={{ opacity: 0, x: m.role === 'user' ? 10 : -10 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.15 }}
+          <Reveal key={i}
+            delay={i * 0.15}
+            x={m.role === 'user' ? 10 : -10}
             className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className="max-w-[85%] text-[11px] px-3 py-2 rounded-lg leading-relaxed"
               style={{
@@ -398,7 +432,7 @@ function FeatureVisual({ index, colors: c }: { index: number; colors: ReturnType
               }}>
               {m.text}
             </div>
-          </motion.div>
+          </Reveal>
         ))}
       </div>
     );
@@ -413,9 +447,9 @@ function FeatureVisual({ index, colors: c }: { index: number; colors: ReturnType
     return (
       <div className="flex flex-col gap-3 h-full justify-center">
         {patterns.map((p, i) => (
-          <motion.div key={i}
-            initial={{ opacity: 0, x: -10 }} whileInView={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.12 }}
+          <Reveal key={i}
+            delay={i * 0.12}
+            x={-10}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
             style={{
               border: `1px solid ${p.ok ? 'rgba(96,165,250,0.25)' : 'rgba(251,146,60,0.25)'}`,
@@ -428,7 +462,7 @@ function FeatureVisual({ index, colors: c }: { index: number; colors: ReturnType
                 style={{ color: p.ok ? 'rgba(147,197,253,0.8)' : 'rgba(253,186,116,0.8)' }}>{p.name}</div>
               <div className="text-[10px]" style={{ color: c.textMuted }}>{p.desc}</div>
             </div>
-          </motion.div>
+          </Reveal>
         ))}
         <div className="text-[9px] mt-2 tracking-wider text-center" style={{ color: c.textFaint }}>
           自动识别 11 种经典格局
@@ -446,10 +480,32 @@ export default function HomePage() {
   const { theme } = useTheme();
   const c = useColors(theme);
 
-  const heroRef = useRef(null);
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
-  const heroY = useTransform(scrollYProgress, [0, 1], ['0%', '28%']);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.55], [1, 0]);
+  // hero 视差（原 framer-motion useScroll/useTransform）：
+  // progress = scrollY / heroHeight（hero 顶贴视口顶时为 0，底离开视口顶时为 1）
+  // 直接写 DOM style，不过 React state，滚动帧率更稳
+  const heroRef = useRef<HTMLElement>(null);
+  const heroInnerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const hero = heroRef.current;
+    const inner = heroInnerRef.current;
+    if (!hero || !inner) return;
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const h = hero.offsetHeight || 1;
+        const p = Math.min(Math.max(window.scrollY / h, 0), 1);
+        inner.style.transform = `translateY(${p * 28}%)`;
+        inner.style.opacity = String(1 - Math.min(p / 0.55, 1));
+      });
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
 
   // 把 body / html 背景同步到 home 主题色，消除半透明 nav 透出 #fafaf9 的色差
   // useLayoutEffect 保证在浏览器绘制前同步更新，避免与根 div 的 transition 不同步
@@ -490,41 +546,39 @@ export default function HomePage() {
         </div>
         <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
           <ThemeToggle />
-          <motion.button
-            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+          <button
+            className="hover-subtle tap-subtle text-[11px] sm:text-xs px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full"
             onClick={() => router.push('/heming')}
-            className="text-[11px] sm:text-xs px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full transition-all duration-300"
-            style={{ border: `1px solid ${c.navBorder}`, color: c.textMuted }}>
+            style={{ border: `1px solid ${c.navBorder}`, color: c.textMuted, transition: 'all 0.3s, transform 0.15s ease-out' }}>
             合盘
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+          </button>
+          <button
+            className="hover-subtle tap-subtle text-[11px] sm:text-xs px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full"
             onClick={() => router.push('/chart')}
-            className="text-[11px] sm:text-xs px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full transition-all duration-300"
-            style={{ border: `1px solid ${c.goldLine}`, color: c.goldSolid }}>
+            style={{ border: `1px solid ${c.goldLine}`, color: c.goldSolid, transition: 'all 0.3s, transform 0.15s ease-out' }}>
             立即起盘
-          </motion.button>
+          </button>
         </div>
       </nav>
 
       {/* ══ HERO ══════════════════════════════════════════ */}
       <section ref={heroRef} className="relative min-h-[82svh] lg:min-h-[92vh] flex flex-col items-center justify-center px-6 z-10 pb-24 pt-10">
-        <motion.div style={{ y: heroY, opacity: heroOpacity, maxWidth: '960px' }} className="text-center w-full mx-auto mt-10">
+        <div ref={heroInnerRef} style={{ maxWidth: '960px' }} className="text-center w-full mx-auto mt-10">
           {/* 标签行 */}
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="flex items-center justify-center gap-3 mb-8">
+          <div
+            className="anim-fade-up flex items-center justify-center gap-3 mb-8"
+            style={{ animationDelay: '0.1s', animationDuration: '0.6s' }}>
             <div className="h-px w-12" style={{ background: `linear-gradient(to right, transparent, ${c.goldLine})` }} />
             <span className="text-[11px] tracking-[0.45em] transition-colors duration-300" style={{ color: c.tagText }}>
               紫微斗数 · 倪海厦体系
             </span>
             <div className="h-px w-12" style={{ background: `linear-gradient(to left, transparent, ${c.goldLine})` }} />
-          </motion.div>
+          </div>
 
           {/* 主标题 */}
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-            style={{ position: 'relative', display: 'inline-block' }}>
+          <div
+            className="anim-fade-up"
+            style={{ position: 'relative', display: 'inline-block', animationDelay: '0.2s', animationDuration: '0.9s' }}>
             <h1
               className={`grad-text ${theme === 'dark' ? 'grad-text-dark' : 'grad-text-light'} font-bold leading-none mb-5`}
               style={{
@@ -533,66 +587,62 @@ export default function HomePage() {
               }}>
               紫微命盘
             </h1>
-          </motion.div>
+          </div>
 
-          <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.45 }}
-            className="text-base md:text-lg tracking-[0.18em] mb-2"
-            style={{ color: c.textSecond, fontWeight: 500 }}>
+          <p
+            className="anim-fade-up text-base md:text-lg tracking-[0.18em] mb-2"
+            style={{ color: c.textSecond, fontWeight: 500, animationDelay: '0.45s', animationDuration: '0.7s' }}>
             紫微为门 · 天地人为路 · 倪海厦为师
-          </motion.p>
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            transition={{ duration: 0.7, delay: 0.55 }}
-            className="text-xs md:text-sm tracking-[0.3em] mb-6"
-            style={{ color: c.textMuted, opacity: 0.85 }}>
+          </p>
+          <p
+            className="anim-fade-in text-xs md:text-sm tracking-[0.3em] mb-6"
+            style={{ color: c.textMuted, opacity: 0.85, animationDelay: '0.55s', animationDuration: '0.7s' }}>
             AI 答疑 · 知行合一
-          </motion.p>
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            transition={{ duration: 0.7, delay: 0.65 }}
-            className="text-sm max-w-xl mx-auto leading-relaxed mb-10"
-            style={{ color: c.textMuted }}>
+          </p>
+          <p
+            className="anim-fade-in text-sm max-w-xl mx-auto leading-relaxed mb-10"
+            style={{ color: c.textMuted, animationDelay: '0.65s', animationDuration: '0.7s' }}>
             输入出生年月日时，生成专属紫微斗数命盘 — 后续天纪、地纪、人纪学习模块陆续开放。
-          </motion.p>
+          </p>
 
           {/* CTA */}
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.85 }}
-            className="flex flex-col items-center gap-4">
-            <motion.button
-              whileHover={{ y: -2, filter: 'brightness(1.06)' }} whileTap={{ scale: 0.97 }}
+          <div
+            className="anim-fade-up flex flex-col items-center gap-4"
+            style={{ animationDelay: '0.85s', animationDuration: '0.6s' }}>
+            <button
+              className="hover-lift px-12 py-4 font-semibold text-base tracking-widest rounded-full"
               onClick={() => router.push('/chart')}
-              className="px-12 py-4 font-semibold text-base tracking-widest rounded-full"
               style={{ background: c.ctaBg, color: c.ctaText }}>
               立即起盘
-            </motion.button>
-          </motion.div>
+            </button>
+          </div>
 
           {/* 十四主星 */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            transition={{ delay: 1.05, duration: 0.8 }}
-            className="mt-12 grid grid-cols-7 gap-1.5 max-w-[540px] mx-auto">
+          <div
+            className="anim-fade-in mt-12 grid grid-cols-7 gap-1.5 max-w-[540px] mx-auto"
+            style={{ animationDelay: '1.05s', animationDuration: '0.8s' }}>
             {STARS.map((star, i) => (
-              <motion.div key={star.name}
-                initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 1.05 + i * 0.03, duration: 0.35 }}
-                className="flex items-center justify-center px-2 py-1 rounded-full"
-                style={{ background: c.starBg, border: `1px solid ${c.starBorder}` }}>
+              <div key={star.name}
+                className="anim-pop-in flex items-center justify-center px-2 py-1 rounded-full"
+                style={{
+                  background: c.starBg, border: `1px solid ${c.starBorder}`,
+                  animationDelay: `${1.05 + i * 0.03}s`, animationDuration: '0.35s',
+                }}>
                 <span className="text-[11px] tracking-wide" style={{ color: c.starText }}>{star.name}</span>
-              </motion.div>
+              </div>
             ))}
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
 
         {/* 上线公告便利贴 — 桌面端绝对定位右侧 */}
-        <motion.div
-          initial={{ opacity: 0, x: 30, rotate: 0 }}
-          animate={{ opacity: 1, x: 0, rotate: -4 }}
-          transition={{ delay: 1.4, duration: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
-          className="absolute hidden lg:block pointer-events-none"
+        <div
+          className="anim-note-in absolute hidden lg:block pointer-events-none"
           style={{
             right: 'clamp(2%, 6vw, 8%)',
             top: '54%',
             maxWidth: '240px',
+            animationDelay: '1.4s',
+            transform: 'rotate(-4deg)',
           }}
         >
           <div style={{
@@ -613,16 +663,15 @@ export default function HomePage() {
               <strong style={{ color: '#c45a2d' }}> 全免费</strong>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* 上线公告便利贴 — 手机端正常流式显示（hero 内容下方居中） */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0, rotate: -2 }}
-          transition={{ delay: 1.4, duration: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
-          className="lg:hidden mx-auto mt-8 mb-2 pointer-events-none"
+        <div
+          className="anim-note-in-m lg:hidden mx-auto mt-8 mb-2 pointer-events-none"
           style={{
             maxWidth: 'min(280px, 84vw)',
+            animationDelay: '1.4s',
+            transform: 'rotate(-2deg)',
           }}
         >
           <div style={{
@@ -643,16 +692,15 @@ export default function HomePage() {
               全部功能 + AI <strong style={{ color: '#c45a2d' }}>全免费</strong>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* 滚动提示（绝对定位，不影响 hero opacity 计算） */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          transition={{ delay: 2, duration: 1 }}
-          className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-2 pointer-events-none">
+        <div
+          className="anim-fade-in absolute bottom-6 left-0 right-0 flex flex-col items-center gap-2 pointer-events-none"
+          style={{ animationDelay: '2s', animationDuration: '1s' }}>
           <span className="text-[9px] tracking-[0.4em] uppercase" style={{ color: c.scrollText }}>探索更多</span>
-          <motion.div animate={{ y: [0, 6, 0] }} transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-            className="w-px h-8" style={{ background: `linear-gradient(to bottom, ${c.scrollLine}, transparent)` }} />
-        </motion.div>
+          <div className="anim-bob w-px h-8" style={{ background: `linear-gradient(to bottom, ${c.scrollLine}, transparent)` }} />
+        </div>
       </section>
 
       {/* ══ 哲学引言 ══════════════════════════════════════ */}
@@ -680,20 +728,18 @@ export default function HomePage() {
               { text: '不在于预知未来', size: 'clamp(21px, 2.6vw, 32px)', color: 'rgba(220,232,250,0.74)', delay: 0.25 },
               { text: '而在于不断认识自己', size: 'clamp(24px, 3vw, 40px)', color: 'rgba(218,230,248,0.8)', delay: 0.34 },
             ].map((line, i) => (
-              <motion.p key={i}
-                initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: line.delay }}
+              <Reveal key={i}
+                delay={line.delay} y={16}
                 className="tracking-wider" style={{ fontSize: line.size, color: line.color, fontWeight: 400 }}>
                 {line.text}
-              </motion.p>
+              </Reveal>
             ))}
-            <motion.p
-              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.45 }}
+            <Reveal
+              delay={0.45} y={20}
               className={`grad-text ${theme === 'dark' ? 'grad-text-dark' : 'grad-text-light'} font-bold`}
               style={{ fontSize: 'clamp(24px, 3.4vw, 48px)', letterSpacing: '0.05em', lineHeight: 1.35 }}>
               最终书写属于自己的人生剧本
-            </motion.p>
+            </Reveal>
           </div>
         </FadeIn>
       </section>
@@ -738,10 +784,8 @@ export default function HomePage() {
             {SECTIONS.map((s, i) => {
               const ready = s.status === 'ready';
               return (
-                <motion.div key={s.key}
-                  initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.15, duration: 0.5 }}
-                  viewport={{ once: true }}
+                <Reveal key={s.key}
+                  delay={i * 0.15} y={20}
                   className="relative flex flex-row lg:flex-col items-center lg:items-center text-left lg:text-center gap-4 lg:gap-0">
                   {/* 节点圆 */}
                   <div className="relative w-14 h-14 shrink-0 rounded-full flex items-center justify-center lg:mb-3"
@@ -803,7 +847,7 @@ export default function HomePage() {
                       {s.desc}
                     </div>
                   </div>
-                </motion.div>
+                </Reveal>
               );
             })}
           </div>
@@ -898,8 +942,8 @@ export default function HomePage() {
               { glyph: '人', label: '人心意念', pct: '⅓', color: 'rgba(100,216,139,0.9)', borderColor: 'rgba(100,216,139,0.3)', desc: '个人的意志、心态、选择与行动，才是改变命运最主动的力量。倪师强调：了解命盘是为了更好地做人，而不是坐等命运安排。精进自己，是最强的破局之道。', sub: '意志 · 选择 · 行动' },
             ].map((item, i) => (
               <FadeIn key={item.glyph} delay={0.1 + i * 0.12}>
-                <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.1 }}
-                  className="rounded-2xl p-7 h-full flex flex-col"
+                <div
+                  className="hover-rise rounded-2xl p-7 h-full flex flex-col"
                   style={{ background: c.cardBg, border: `1px solid ${item.borderColor}`, boxShadow: c.cardShadow }}>
                   <div className="flex items-start justify-between mb-5">
                     <div className="text-5xl font-bold leading-none" style={{ color: item.color }}>{item.glyph}</div>
@@ -914,7 +958,7 @@ export default function HomePage() {
                   </div>
                   <div className="h-px mb-4" style={{ background: item.borderColor }} />
                   <p className="text-xs leading-relaxed flex-1" style={{ color: c.textSecond }}>{item.desc}</p>
-                </motion.div>
+                </div>
               </FadeIn>
             ))}
           </div>
@@ -1011,8 +1055,8 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {NI_TEACHINGS.map((teaching, i) => (
               <FadeIn key={i} delay={0.1 + i * 0.08}>
-                <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.1 }}
-                  className="rounded-xl p-6 h-full"
+                <div
+                  className="hover-rise rounded-xl p-6 h-full"
                   style={{ border: `1px solid ${c.niCardBord}`, background: c.niCardBg, boxShadow: c.niCardShadow }}>
                   <div className="flex items-start gap-3 mb-3">
                     <div className="flex-shrink-0 w-5 h-5 rounded-full border flex items-center justify-center mt-0.5"
@@ -1022,7 +1066,7 @@ export default function HomePage() {
                     <h3 className="text-sm font-medium leading-relaxed" style={{ color: c.goldSolid }}>{teaching.title}</h3>
                   </div>
                   <p className="text-xs leading-relaxed pl-8" style={{ color: c.textSecond }}>{teaching.body}</p>
-                </motion.div>
+                </div>
               </FadeIn>
             ))}
           </div>
@@ -1064,10 +1108,9 @@ export default function HomePage() {
                   </span>
                 ))}
               </div>
-              <motion.button
-                whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+              <button
+                className="hover-subtle tap-subtle px-10 py-3 font-medium text-sm tracking-widest rounded-full"
                 onClick={() => router.push('/heming')}
-                className="px-10 py-3 font-medium text-sm tracking-widest rounded-full"
                 style={{
                   background: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(140,100,20,0.1)',
                   border: `1px solid ${c.goldLine}`,
@@ -1075,7 +1118,7 @@ export default function HomePage() {
                   cursor: 'pointer',
                 }}>
                 开始合盘分析
-              </motion.button>
+              </button>
             </FadeIn>
           </div>
         </div>
@@ -1093,18 +1136,16 @@ export default function HomePage() {
             输入出生年月日时，在几秒内生成你的专属命盘<br />
             再由 AI 按倪海厦体系为你深度解读
           </p>
-          <motion.button
-            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+          <button
+            className="hover-subtle tap-subtle px-14 py-4 font-semibold text-base tracking-widest rounded-full"
             onClick={() => router.push('/chart')}
-            className="px-14 py-4 font-semibold text-base tracking-widest rounded-full"
             style={{ background: c.ctaBg, color: c.ctaText }}>
             免费起盘
-          </motion.button>
+          </button>
           <div className="mt-4 flex flex-wrap gap-3 justify-center">
-            <motion.a
+            <a
               href="/knowledge"
-              whileHover={{ scale: 1.02 }}
-              className="text-xs tracking-[0.2em] inline-flex items-center gap-2 px-4 py-2 rounded-full"
+              className="hover-subtle text-xs tracking-[0.2em] inline-flex items-center gap-2 px-4 py-2 rounded-full"
               style={{
                 color: c.goldSolid,
                 border: `1px solid ${c.goldLine}`,
@@ -1112,11 +1153,10 @@ export default function HomePage() {
                 textDecoration: 'none',
               }}>
               ✦ 紫微斗数知识库 →
-            </motion.a>
-            <motion.a
+            </a>
+            <a
               href="/library"
-              whileHover={{ scale: 1.02 }}
-              className="text-xs tracking-[0.2em] inline-flex items-center gap-2 px-4 py-2 rounded-full"
+              className="hover-subtle text-xs tracking-[0.2em] inline-flex items-center gap-2 px-4 py-2 rounded-full"
               style={{
                 color: c.goldSolid,
                 border: `1px solid ${c.goldLine}`,
@@ -1124,7 +1164,7 @@ export default function HomePage() {
                 textDecoration: 'none',
               }}>
               📜 古籍原典库 →
-            </motion.a>
+            </a>
           </div>
         </FadeIn>
       </section>

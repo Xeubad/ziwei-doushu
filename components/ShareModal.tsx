@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import type { ZiweiChart } from '@/lib/ziwei/types';
 import ShareCardCanvas, { captureShareCard, downloadDataURL } from './ShareCardCanvas';
 
@@ -50,22 +49,16 @@ export default function ShareModal({ open, onClose, shareUrl, chart, birth, high
   };
 
   return (
-    <AnimatePresence>
+    <>
       {open && (
-        <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+        <div
+          className="anim-overlay fixed inset-0 z-[100] flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
           onClick={onClose}
         >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+          <div
+            className="anim-pop-center rounded-2xl overflow-hidden"
             onClick={e => e.stopPropagation()}
-            className="rounded-2xl overflow-hidden"
             style={{
               background: 'white',
               maxWidth: '680px',
@@ -140,9 +133,9 @@ export default function ShareModal({ open, onClose, shareUrl, chart, birth, high
                 · 复制链接发给微信好友，对方点开看自己的盘起点
               </div>
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }

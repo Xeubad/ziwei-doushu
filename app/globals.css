@@ -166,6 +166,123 @@ body {
 ::-webkit-scrollbar-track { background: var(--bg-1); }
 ::-webkit-scrollbar-thumb { background: var(--bdr-heavy); border-radius: 3px; }
 
+/* ─── 入场动画工具类（替代 framer-motion 的 initial/animate 用法）──
+   用法：<div className="anim-fade-up" style={{ animationDelay: '0.2s' }}>
+   延迟通过 animationDelay 控制，CSS 动画在 delay 期间保持 backwards fill 的初态。 */
+@keyframes kf-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes kf-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes kf-fade-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes kf-slide-left {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes kf-pop-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes kf-pop-center {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes kf-drawer-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes kf-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes kf-reveal {
+  /* 元素进入视口时由下往上淡入（配合 IntersectionObserver 加 .in-view） */
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.anim-fade-in     { animation: kf-fade-in 0.5s ease-out backwards; }
+.anim-fade-up     { animation: kf-fade-up 0.5s cubic-bezier(0.25,0.1,0.25,1) backwards; }
+.anim-fade-down   { animation: kf-fade-down 0.4s ease-out backwards; }
+.anim-slide-left  { animation: kf-slide-left 0.35s ease-out backwards; }
+.anim-pop-in      { animation: kf-pop-in 0.35s ease-out backwards; }
+.anim-pop-center  { animation: kf-pop-center 0.2s ease-out backwards; }
+.anim-drawer-in   { animation: kf-drawer-in 0.25s ease-out backwards; }
+.anim-spin        { animation: kf-spin 1s linear infinite; }
+
+/* 滚动揭示：JS 用 IntersectionObserver 给元素加 .in-view 触发一次 */
+.scroll-reveal { opacity: 0; }
+.scroll-reveal.in-view { animation: kf-reveal 0.7s cubic-bezier(0.22,1,0.36,1) forwards; }
+
+/* 覆盖/弹窗遮罩淡入 */
+.anim-overlay { animation: kf-fade-in 0.2s ease-out backwards; }
+
+/* 交互态（替代 whileHover / whileTap 的简单缩放） */
+.hover-lift   { transition: transform 0.15s ease-out, filter 0.15s ease-out; }
+.hover-lift:hover  { transform: translateY(-2px); filter: brightness(1.06); }
+.hover-lift:active { transform: translateY(0) scale(0.97); }
+.hover-grow   { transition: transform 0.15s ease-out; }
+.hover-grow:hover  { transform: scale(1.05); }
+.hover-grow:active { transform: scale(0.93); }
+.hover-rise   { transition: transform 0.1s ease-out; }
+.hover-rise:hover  { transform: translateY(-4px); }
+.tap-shrink   { transition: transform 0.12s ease-out; }
+.tap-shrink:active { transform: scale(0.95); }
+/* 主按钮级微交互（whileHover 1.01 / whileTap 0.97~0.98） */
+.hover-subtle { transition: transform 0.15s ease-out; }
+.hover-subtle:hover  { transform: scale(1.01); }
+.tap-subtle   { transition: transform 0.12s ease-out; }
+.tap-subtle:active { transform: scale(0.97); }
+
+/* 首页便利贴入场（带旋转定格） */
+@keyframes kf-note-in {
+  from { opacity: 0; transform: translateX(30px) rotate(0deg); }
+  to   { opacity: 1; transform: translateX(0) rotate(-4deg); }
+}
+@keyframes kf-note-in-m {
+  from { opacity: 0; transform: translateY(16px) rotate(0deg); }
+  to   { opacity: 1; transform: translateY(0) rotate(-2deg); }
+}
+.anim-note-in   { animation: kf-note-in 0.7s cubic-bezier(0.25,0.1,0.25,1) backwards; }
+.anim-note-in-m { animation: kf-note-in-m 0.7s cubic-bezier(0.25,0.1,0.25,1) backwards; }
+
+/* 滚动提示上下浮动 */
+@keyframes kf-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(6px); } }
+.anim-bob { animation: kf-bob 2s ease-in-out infinite; }
+
+/* ScrollIntro 卷轴展开（右轴固定，纸向左铺、左轴左移） */
+@keyframes kf-unroll-w {
+  from { width: 0; opacity: 0.92; }
+  to   { width: calc(100% - 32px); opacity: 1; }
+}
+@keyframes kf-unroll-pos {
+  from { right: 0; }
+  to   { right: calc(100% - 32px); }
+}
+/* 印章弹入 */
+@keyframes kf-seal-in {
+  from { opacity: 0; transform: scale(0.6) rotate(-15deg); }
+  to   { opacity: 1; transform: scale(1) rotate(-4deg); }
+}
+/* ScrollIntro 整体淡出 */
+@keyframes kf-intro-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* 尊重系统减弱动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade-in, .anim-fade-up, .anim-fade-down, .anim-slide-left,
+  .anim-pop-in, .anim-pop-center, .anim-drawer-in, .anim-overlay,
+  .scroll-reveal.in-view { animation-duration: 0.01s; }
+  .anim-spin { animation-duration: 2s; }
+}
+
 /* ─── 选中文字 ───────────────────────────────────────────── */
 ::selection {
   background: rgba(184,146,42,0.15);

@@ -1,5 +1,4 @@
 'use client';
-import { motion } from 'framer-motion';
 import type { Palace, Star } from '@/lib/ziwei/types';
 import { STEMS, BRANCHES } from '@/lib/ziwei/constants';
 import clsx from 'clsx';
@@ -70,13 +69,11 @@ export default function PalaceCell({
   const shaStars = stars.filter(s => s.type === 'sha');
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.92 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.35, delay, ease: 'easeOut' }}
+    <div
       onClick={onClick}
-      className="relative flex flex-col p-1.5 cursor-pointer transition-all duration-200 h-full"
+      className="anim-pop-in relative flex flex-col p-1.5 cursor-pointer transition-all duration-200 h-full"
       style={{
+        animationDelay: `${delay}s`,
         minHeight: '90px',
         background: isCurrentDaXian
           ? 'color-mix(in srgb, var(--dx) 7%, transparent)'
@@ -215,6 +212,6 @@ export default function PalaceCell({
         </div>
       )}
 
-    </motion.div>
+    </div>
   );
 }

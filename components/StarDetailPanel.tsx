@@ -1,5 +1,5 @@
 'use client';
-import { motion, AnimatePresence } from 'framer-motion';
+// 抽屉滑入改用 CSS 动画（globals.css .anim-drawer-in），不再用 framer-motion
 import type { Star } from '@/lib/ziwei/types';
 import { STAR_DESCRIPTIONS } from '@/lib/ziwei/constants';
 
@@ -182,14 +182,10 @@ export default function StarDetailPanel({ star, palaceName, onClose }: StarDetai
   const typeConfig = star ? levelConfig[star.type] : null;
 
   return (
-    <AnimatePresence>
+    <>
       {star && (
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 20 }}
-          transition={{ duration: 0.2 }}
-          className="card-glass rounded-xl overflow-hidden"
+        <div
+          className="anim-drawer-in card-glass rounded-xl overflow-hidden"
         >
           {/* 标题栏 */}
           <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--t-border)' }}>
@@ -325,8 +321,8 @@ export default function StarDetailPanel({ star, palaceName, onClose }: StarDetai
               </div>
             )}
           </div>
-        </motion.div>
+        </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+// 入场动画统一用 globals.css 的 .anim-fade-up
 import BirthForm, { type BirthFormState } from '@/components/BirthForm';
 import AiContent from '@/components/AiContent';
 import { streamAiText, aiErrorMessage, AiStreamError, type AiErrorKind } from '@/lib/ai/client';
@@ -127,10 +127,8 @@ export default function HemingPage() {
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '32px 24px 80px' }}>
 
         {/* 标题 */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
+        <div
+          className="anim-fade-up"
           style={{ textAlign: 'center', marginBottom: '36px' }}
         >
           <div style={{ fontSize: '28px', color: 'var(--ac)', opacity: 0.15, marginBottom: '12px' }}>☯</div>
@@ -140,15 +138,12 @@ export default function HemingPage() {
           <p style={{ fontSize: '13px', color: 'var(--tx-3)', lineHeight: 1.6 }}>
             输入两个人的出生信息，AI 基于倪海厦体系分析双方命盘的缘分匹配度、感情走向与相处建议
           </p>
-        </motion.div>
+        </div>
 
         {/* 双栏表单 */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
-          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}
-          className="heming-grid"
+        <div
+          className="anim-fade-up heming-grid"
+          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px', animationDelay: '0.1s' }}
         >
           {/* 甲方 */}
           <div style={cardStyle}>
@@ -169,7 +164,7 @@ export default function HemingPage() {
               onFormSave={setFormB}
             />
           </div>
-        </motion.div>
+        </div>
 
         {/* ═══ 大合盘分析框（视觉中心，始终显示）════════════════ */}
         <div ref={analysisRef} style={{

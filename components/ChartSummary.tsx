@@ -1,5 +1,4 @@
 'use client';
-import { motion } from 'framer-motion';
 import type { ZiweiChart } from '@/lib/ziwei/types';
 import { BRANCHES, STEMS } from '@/lib/ziwei/constants';
 import { detectPatterns, getMingGongSummary } from '@/lib/ziwei/patterns-core';
@@ -33,17 +32,14 @@ export default function ChartSummary({ chart }: ChartSummaryProps) {
   siHuaSummary.sort((a, b) => siHuaOrder.indexOf(a.siHua) - siHuaOrder.indexOf(b.siHua));
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ delay: 0.3, duration: 0.5 }}
-      className="space-y-4"
+    <div
+      className="anim-fade-in space-y-4"
+      style={{ animationDelay: '0.3s' }}
     >
       {/* ── 命格总览 ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35, duration: 0.55, ease: [0.25, 0.1, 0.25, 1] }}
+      <div
+        className="anim-fade-up"
+        style={{ animationDelay: '0.35s' }}
       >
       <div className="card-glass rounded-xl p-5">
         <div className="text-[10px] tracking-widest mb-4 flex items-center gap-2" style={{ color: 'var(--t-faint)' }}>
@@ -108,14 +104,13 @@ export default function ChartSummary({ chart }: ChartSummaryProps) {
           <span>命宫{BRANCHES[chart.mingGongBranch]} · 身宫{BRANCHES[chart.shenGongBranch]}</span>
         </div>
       </div>
-      </motion.div>
+      </div>
 
       {/* ── 本命四化 ── */}
       {siHuaSummary.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.55, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+        <div
+          className="anim-fade-up"
+          style={{ animationDelay: '0.55s' }}
         >
         <div className="card-glass rounded-xl p-4">
           <div className="text-[10px] tracking-widest mb-3 flex items-center gap-2" style={{ color: 'var(--t-faint)' }}>
@@ -124,13 +119,15 @@ export default function ChartSummary({ chart }: ChartSummaryProps) {
           </div>
           <div className="grid grid-cols-2 gap-2">
             {siHuaSummary.map(({ name, siHua, palaceName }) => {
-              const colors: Record<string, { text: string; bg: string; border: string }> = {
-                '禄': { text: '#4ade80', bg: 'rgba(74,222,128,0.06)', border: 'rgba(74,222,128,0.2)' },
-                '权': { text: '#60a5fa', bg: 'rgba(96,165,250,0.06)', border: 'rgba(96,165,250,0.2)' },
-                '科': { text: '#facc15', bg: 'rgba(250,204,21,0.06)', border: 'rgba(250,204,21,0.2)' },
-                '忌': { text: '#f87171', bg: 'rgba(248,113,113,0.06)', border: 'rgba(248,113,113,0.2)' },
+              const colors: Record<string, string> = {
+                '禄': 'var(--lu)', '权': 'var(--quan)', '科': 'var(--ke)', '忌': 'var(--ji)',
               };
-              const c = colors[siHua] || colors['禄'];
+              const lv = colors[siHua] || 'var(--lu)';
+              const c = {
+                text: lv,
+                bg: `color-mix(in srgb, ${lv} 6%, transparent)`,
+                border: `color-mix(in srgb, ${lv} 20%, transparent)`,
+              };
               return (
                 <div key={name + siHua}
                   className="flex items-center justify-between px-3 py-2 rounded-lg text-[10px]"
@@ -146,15 +143,14 @@ export default function ChartSummary({ chart }: ChartSummaryProps) {
             })}
           </div>
         </div>
-        </motion.div>
+        </div>
       )}
 
       {/* ── 格局识别 ── */}
       {patterns.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.72, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+        <div
+          className="anim-fade-up"
+          style={{ animationDelay: '0.72s' }}
         >
         <div className="card-glass rounded-xl p-4">
           <div className="text-[10px] tracking-widest mb-3 flex items-center gap-2" style={{ color: 'var(--t-faint)' }}>
@@ -166,12 +162,10 @@ export default function ChartSummary({ chart }: ChartSummaryProps) {
             {patterns.map((p, i) => {
               const lv = PatternLevelStyle[p.level]?.color ?? 'var(--lv-neutral)';
               return (
-                <motion.div
+                <div
                   key={i}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.8 + i * 0.08 }}
-                  className="card-inner rounded-lg p-3"
+                  className="anim-slide-left card-inner rounded-lg p-3"
+                  style={{ animationDelay: `${0.8 + i * 0.08}s` }}
                 >
                   <div className="flex items-center gap-2 mb-1.5">
                     <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: lv }} />
@@ -227,19 +221,18 @@ export default function ChartSummary({ chart }: ChartSummaryProps) {
                       出处 · {p.source}
                     </div>
                   )}
-                </motion.div>
+                </div>
               );
             })}
           </div>
         </div>
-        </motion.div>
+        </div>
       )}
 
       {/* ── 大限运程 ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.88, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+      <div
+        className="anim-fade-up"
+        style={{ animationDelay: '0.88s' }}
       >
       <div className="card-glass rounded-xl p-4">
         <div className="text-[10px] tracking-widest mb-3 flex items-center gap-2" style={{ color: 'var(--t-faint)' }}>
@@ -268,7 +261,7 @@ export default function ChartSummary({ chart }: ChartSummaryProps) {
           })}
         </div>
       </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }

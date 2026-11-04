@@ -1,5 +1,4 @@
 'use client';
-import { motion } from 'framer-motion';
 import type { FamousPerson } from '@/lib/ziwei/famous';
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -13,11 +12,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 export default function FamousPersonCard({ person }: { person: FamousPerson }) {
   const catColor = CATEGORY_COLORS[person.category] ?? '#d4a843';
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45 }}
-      className="card-glass rounded-xl p-4 mb-4"
+    <div
+      className="anim-fade-up card-glass rounded-xl p-4 mb-4"
       style={{
         border: `1px solid ${catColor}40`,
         background: `linear-gradient(135deg, ${catColor}06, transparent 60%)`,
@@ -60,6 +56,6 @@ export default function FamousPersonCard({ person }: { person: FamousPerson }) {
           ⚠️ 出生时辰为公开文献估算值，仅供研究参考。下方 AI 解读基于此命盘自动生成，与本人无关。
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

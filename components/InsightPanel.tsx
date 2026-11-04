@@ -1,6 +1,5 @@
 'use client';
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import type { ZiweiChart, Palace } from '@/lib/ziwei/types';
 import type { TimeView } from './TimeNav';
 import AiContent from './AiContent';
@@ -127,17 +126,16 @@ export default function InsightPanel({
               </div>
             )}
 
-            <AnimatePresence initial={false}>
+            <>
               {messages.map((msg, i) => {
                 if (msg.role === 'user' && msg.hidden) return null;
 
                 if (msg.role === 'user') {
                   return (
-                    <motion.div
+                    <div
                       key={i}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex justify-end"
+                      className="anim-fade-up flex justify-end"
+                      style={{ animationDuration: '0.3s' }}
                     >
                       <div
                         className="max-w-[85%] rounded-xl px-3 py-2 text-[11px]"
@@ -149,7 +147,7 @@ export default function InsightPanel({
                       >
                         {msg.content}
                       </div>
-                    </motion.div>
+                    </div>
                   );
                 }
 
@@ -159,12 +157,11 @@ export default function InsightPanel({
                 // 错误提示：警示卡样式，与命理解读区分
                 if (msg.isError) {
                   return (
-                    <motion.div
+                    <div
                       key={i}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="rounded-xl px-3 py-2.5 text-[11px] leading-relaxed"
+                      className="anim-fade-up rounded-xl px-3 py-2.5 text-[11px] leading-relaxed"
                       style={{
+                        animationDuration: '0.3s',
                         background: 'var(--ac-bg)',
                         border: '1px solid var(--ac-bdr)',
                         color: 'var(--tx-2)',
@@ -174,15 +171,15 @@ export default function InsightPanel({
                         <span style={{ color: 'var(--ac)' }}>⚠</span>
                         <span>{msg.content}</span>
                       </div>
-                    </motion.div>
+                    </div>
                   );
                 }
 
                 return (
-                  <motion.div
+                  <div
                     key={i}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    className="anim-fade-up"
+                    style={{ animationDuration: '0.3s' }}
                   >
                     <div
                       className="text-[9px] tracking-widest mb-2 flex items-center gap-1.5"
@@ -192,10 +189,10 @@ export default function InsightPanel({
                       命理解读
                     </div>
                     <AiContent text={msg.content} streaming={loading && isLastMsg} />
-                  </motion.div>
+                  </div>
                 );
               })}
-            </AnimatePresence>
+            </>
           </>
         )}
       </div>

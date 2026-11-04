@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 // 公告版本号——以后想再弹新公告，改这里就行（旧版 key 失效，新版重新弹一次）
 const ANNOUNCEMENT_VERSION = '2026-05-01';
@@ -39,13 +38,10 @@ export default function AnnouncementModal() {
   if (!decided) return null;
 
   return (
-    <AnimatePresence>
+    <>
       {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.25 }}
+        <div
+          className="anim-overlay"
           // 不点击外部关闭——强制用户按"我知道了"按钮才能进入首页
           style={{
             position: 'fixed', inset: 0, zIndex: 9999,
@@ -56,11 +52,8 @@ export default function AnnouncementModal() {
             padding: '16px',
           }}
         >
-          <motion.div
-            initial={{ scale: 0.92, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+          <div
+            className="anim-pop-center"
             onClick={(e) => e.stopPropagation()}
             style={{
               background: 'linear-gradient(180deg, #fefcf6 0%, #faf3e3 100%)',
@@ -200,9 +193,9 @@ export default function AnnouncementModal() {
                 我知道了
               </button>
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }
