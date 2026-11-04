@@ -9,7 +9,6 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useTheme } from '@/components/ThemeProvider';
 
 export interface SelectOption {
   value: string;
@@ -31,8 +30,6 @@ interface SelectProps {
 export default function Select({
   value, onChange, options, placeholder, disabled, error, style,
 }: SelectProps) {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -98,15 +95,11 @@ export default function Select({
     }
   };
 
-  // ── 主题配色（与 BirthForm 输入框一致的暖色系）──
-  const border = error
-    ? (isDark ? '#f87171' : '#dc2626')
-    : (isDark ? 'rgba(255,255,255,0.18)' : 'rgba(200,160,60,0.25)');
-  const bg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,252,240,0.8)';
-  const textColor = !selected
-    ? (isDark ? 'rgba(190,205,225,0.55)' : 'rgba(140,110,60,0.55)')
-    : (isDark ? '#e8eef8' : '#2a1a00');
-  const focusBorder = isDark ? 'rgba(212,168,67,0.5)' : 'rgba(180,120,20,0.5)';
+  // ── 配色：统一走 globals.css 表单语义 token（亮暗自动适配）──
+  const border = error ? 'var(--err)' : 'var(--input-bdr)';
+  const bg = 'var(--input-bg)';
+  const textColor = !selected ? 'var(--tx-3)' : 'var(--input-clr)';
+  const focusBorder = 'var(--input-focus)';
 
   return (
     <div ref={rootRef} style={{ position: 'relative', ...style }}>
@@ -133,7 +126,7 @@ export default function Select({
           outline: 'none',
           transition: 'border-color 0.2s, background 0.15s',
           boxShadow: open
-            ? `0 0 0 3px ${isDark ? 'rgba(212,168,67,0.12)' : 'rgba(180,120,20,0.10)'}`
+            ? '0 0 0 3px color-mix(in srgb, var(--ac) 12%, transparent)'
             : 'none',
           ...style,
         }}
@@ -169,11 +162,9 @@ export default function Select({
             overflowY: 'auto',
             padding: 5,
             borderRadius: '14px',
-            background: isDark ? 'rgba(14,22,44,0.98)' : 'rgba(255,253,246,0.98)',
-            border: `1px solid ${isDark ? 'rgba(255,255,255,0.14)' : 'rgba(200,160,60,0.28)'}`,
-            boxShadow: isDark
-              ? '0 16px 40px rgba(0,0,0,0.5)'
-              : '0 16px 40px rgba(120,90,20,0.16)',
+            background: 'var(--bg-2)',
+            border: '1px solid var(--ac-bdr)',
+            boxShadow: 'var(--sh-lg)',
             backdropFilter: 'blur(12px)',
             scrollbarWidth: 'thin',
           }}
@@ -196,13 +187,11 @@ export default function Select({
                   borderRadius: '9px',
                   fontSize: '13px',
                   cursor: 'pointer',
-                  color: isSelected
-                    ? (isDark ? '#e8c060' : '#7a5008')
-                    : (isDark ? 'rgba(220,228,240,0.9)' : '#3a2c10'),
+                  color: isSelected ? 'var(--ac-dim)' : 'var(--tx-1)',
                   background: i === activeIndex
-                    ? (isDark ? 'rgba(212,168,67,0.12)' : 'rgba(180,120,20,0.08)')
+                    ? 'color-mix(in srgb, var(--ac) 12%, transparent)'
                     : isSelected
-                    ? (isDark ? 'rgba(212,168,67,0.08)' : 'rgba(180,120,20,0.05)')
+                    ? 'var(--ac-bg)'
                     : 'transparent',
                   fontWeight: isSelected ? 600 : 400,
                   transition: 'background 0.12s',

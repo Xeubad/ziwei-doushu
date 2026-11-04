@@ -8,11 +8,12 @@ interface ChartSummaryProps {
   chart: ZiweiChart;
 }
 
-const PatternLevelStyle = {
-  excellent: { dot: 'bg-amber-400', label: 'text-amber-500', badge: 'text-amber-500 bg-amber-500/10 border-amber-500/25' },
-  good: { dot: 'bg-sky-400', label: 'text-sky-500', badge: 'text-sky-500 bg-sky-500/10 border-sky-500/25' },
-  neutral: { dot: 'bg-slate-400', label: 'text-slate-400', badge: 'text-slate-400 bg-slate-500/10 border-slate-500/20' },
-  caution: { dot: 'bg-orange-500', label: 'text-orange-500', badge: 'text-orange-500 bg-orange-500/10 border-orange-500/25' },
+// 格局等级色：统一走 --lv-* 语义 token（globals.css 亮暗两套），不再用 Tailwind 硬编码
+const PatternLevelStyle: Record<string, { color: string }> = {
+  excellent: { color: 'var(--lv-excellent)' },
+  good:      { color: 'var(--lv-good)' },
+  neutral:   { color: 'var(--lv-neutral)' },
+  caution:   { color: 'var(--lv-caution)' },
 };
 
 export default function ChartSummary({ chart }: ChartSummaryProps) {
@@ -89,7 +90,7 @@ export default function ChartSummary({ chart }: ChartSummaryProps) {
             <div className="text-[9px] mb-1" style={{ color: 'var(--t-faint)', opacity: 0.85 }}>五行局 · 当前大限</div>
             <div className="text-[11px]" style={{ color: 'var(--t-text2)' }}>{chart.wuxingJuName}</div>
             {currentDx && (
-              <div className="text-[11px] text-purple-500 mt-0.5">
+              <div className="text-[11px] mt-0.5" style={{ color: 'var(--dx)' }}>
                 {currentDx.startAge}~{currentDx.endAge}岁 · {currentDx.palaceName}
               </div>
             )}
@@ -163,7 +164,7 @@ export default function ChartSummary({ chart }: ChartSummaryProps) {
           </div>
           <div className="space-y-2">
             {patterns.map((p, i) => {
-              const st = PatternLevelStyle[p.level];
+              const lv = PatternLevelStyle[p.level]?.color ?? 'var(--lv-neutral)';
               return (
                 <motion.div
                   key={i}
@@ -173,11 +174,19 @@ export default function ChartSummary({ chart }: ChartSummaryProps) {
                   className="card-inner rounded-lg p-3"
                 >
                   <div className="flex items-center gap-2 mb-1.5">
-                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${st.dot}`} />
-                    <span className={`text-[11px] font-medium ${st.label}`}>{p.name}</span>
+                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: lv }} />
+                    <span className="text-[11px] font-medium" style={{ color: lv }}>{p.name}</span>
                     <div className="flex gap-1 ml-auto">
                       {p.palaces.slice(0, 2).map((pa, pi) => (
-                        <span key={`${pa}-${pi}`} className={`text-[8px] px-1.5 py-px rounded-full border ${st.badge}`}>
+                        <span
+                          key={`${pa}-${pi}`}
+                          className="text-[8px] px-1.5 py-px rounded-full border"
+                          style={{
+                            color: lv,
+                            background: `color-mix(in srgb, ${lv} 10%, transparent)`,
+                            borderColor: `color-mix(in srgb, ${lv} 25%, transparent)`,
+                          }}
+                        >
                           {pa.replace('宫', '')}
                         </span>
                       ))}
@@ -198,14 +207,14 @@ export default function ChartSummary({ chart }: ChartSummaryProps) {
                       )}
                       {p.conditions.bonus && p.conditions.bonus.length > 0 && (
                         <div className="text-[9px] leading-relaxed" style={{ color: 'var(--t-text2)', opacity: 0.85 }}>
-                          <span className="font-medium text-emerald-500">加分</span>
+                          <span className="font-medium" style={{ color: 'var(--lu)' }}>加分</span>
                           <span style={{ opacity: 0.6 }}> · </span>
                           {p.conditions.bonus.join('、')}
                         </div>
                       )}
                       {p.conditions.breaking && p.conditions.breaking.length > 0 && (
                         <div className="text-[9px] leading-relaxed" style={{ color: 'var(--t-text2)', opacity: 0.85 }}>
-                          <span className="font-medium text-orange-500">破格</span>
+                          <span className="font-medium" style={{ color: 'var(--lv-caution)' }}>破格</span>
                           <span style={{ opacity: 0.6 }}> · </span>
                           {p.conditions.breaking.join('、')}
                         </div>
@@ -234,7 +243,7 @@ export default function ChartSummary({ chart }: ChartSummaryProps) {
       >
       <div className="card-glass rounded-xl p-4">
         <div className="text-[10px] tracking-widest mb-3 flex items-center gap-2" style={{ color: 'var(--t-faint)' }}>
-          <span className="text-purple-500/60">◎</span>
+          <span style={{ color: 'var(--dx)', opacity: 0.6 }}>◎</span>
           大限运程
         </div>
         <div className="grid grid-cols-3 gap-2">
@@ -246,10 +255,10 @@ export default function ChartSummary({ chart }: ChartSummaryProps) {
                 className="text-[10px] px-2 py-2 rounded-lg text-center transition-colors"
                 style={{
                   border: isCurrent
-                    ? '1px solid rgba(147,51,234,0.4)'
+                    ? '1px solid color-mix(in srgb, var(--dx) 40%, transparent)'
                     : '1px solid var(--t-border)',
-                  background: isCurrent ? 'rgba(147,51,234,0.08)' : 'transparent',
-                  color: isCurrent ? '#a78bfa' : 'var(--t-faint)',
+                  background: isCurrent ? 'color-mix(in srgb, var(--dx) 8%, transparent)' : 'transparent',
+                  color: isCurrent ? 'var(--dx)' : 'var(--t-faint)',
                 }}
               >
                 <div className="font-mono tabular-nums">{dx.startAge}~{dx.endAge}</div>

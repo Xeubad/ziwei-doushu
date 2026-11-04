@@ -34,6 +34,29 @@
   --ke:   #8A7018;
   --ji:   #A83228;
 
+  /* 格局等级语义色（ChartSummary / PatternsCard） */
+  --lv-excellent: #D97706;  /* 上格：琥珀 */
+  --lv-good:      #0284C7;  /* 吉格：天青 */
+  --lv-neutral:   #64748B;  /* 平格：青灰 */
+  --lv-caution:   #EA580C;  /* 凶格：橙红 */
+  --dx:           #9333EA;  /* 大限标记：紫 */
+
+  /* 表单语义色（BirthForm） */
+  --form-bg:       rgba(255,255,255,0.92);
+  --form-bdr:      rgba(200,160,60,0.2);
+  --form-label:    rgba(120,80,10,0.55);
+  --input-bg:      rgba(255,252,240,0.8);
+  --input-bdr:     rgba(200,160,60,0.25);
+  --input-clr:     #2A1A00;
+  --input-focus:   rgba(180,120,20,0.5);
+  --err:           #DC2626;
+  --panel-bg:      rgba(255,250,235,0.7);
+  --info:          #2563EB;  /* 信息提示：蓝 */
+  /* 主按钮（起盘） */
+  --btn-grad:      linear-gradient(135deg, #9A6210, #C88020);
+  --btn-clr:       #FFF8E8;
+  --btn-shadow:    0 4px 16px rgba(140,100,20,0.25);
+
   /* 边框 */
   --bdr:      rgba(0,0,0,0.07);
   --bdr-med:  rgba(0,0,0,0.11);
@@ -47,6 +70,8 @@
 
   /* 卡片/内容块背景 */
   --bg-card: #FFFFFF;
+  /* 吸顶栏半透明底（backdrop-blur 用） */
+  --bg-topbar: rgba(250,245,235,0.92);
   --bg-page: #fbf6e8;
 
   /* 圆角 */
@@ -83,6 +108,28 @@
   --ke:   #d4b13c;
   --ji:   #f87171;
 
+  /* 格局等级语义色：暗底提亮 */
+  --lv-excellent: #FBBF24;
+  --lv-good:      #38BDF8;
+  --lv-neutral:   #94A3B8;
+  --lv-caution:   #FB923C;
+  --dx:           #A78BFA;
+
+  /* 表单语义色：暗底提亮 */
+  --form-bg:       rgba(8,16,40,0.85);
+  --form-bdr:      rgba(255,255,255,0.12);
+  --form-label:    rgba(180,200,225,0.9);
+  --input-bg:      rgba(255,255,255,0.06);
+  --input-bdr:     rgba(255,255,255,0.18);
+  --input-clr:     #E8EEF8;
+  --input-focus:   rgba(212,168,67,0.5);
+  --err:           #F87171;
+  --panel-bg:      rgba(255,255,255,0.03);
+  --info:          #60A5FA;
+  --btn-grad:      linear-gradient(135deg, rgba(180,130,40,0.9), rgba(240,200,80,0.9));
+  --btn-clr:       #08080A;
+  --btn-shadow:    0 4px 20px rgba(212,168,67,0.2);
+
   --bdr:      rgba(255,255,255,0.07);
   --bdr-med:  rgba(255,255,255,0.12);
   --bdr-heavy:rgba(255,255,255,0.20);
@@ -93,6 +140,7 @@
   --sh-lg: 0 12px 40px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.4);
 
   --bg-card: rgba(255,255,255,0.04);
+  --bg-topbar: rgba(2,8,16,0.88);
   --bg-page: #020810;
 }
 

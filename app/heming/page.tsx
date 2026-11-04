@@ -8,12 +8,9 @@ import { streamAiText, aiErrorMessage, AiStreamError, type AiErrorKind } from '@
 import { formToBirthInfo } from '@/lib/ziwei/share';
 import { generateChart as buildChart } from '@/lib/ziwei/algorithm';
 import type { BirthInfo, ZiweiChart } from '@/lib/ziwei/types';
-import { useTheme } from '@/components/ThemeProvider';
 
 export default function HemingPage() {
   const router = useRouter();
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
 
   // ─── 双方命盘状态 ─────────────────────────────────────────
   const [chartA, setChartA] = useState<ZiweiChart | null>(null);
@@ -87,9 +84,10 @@ export default function HemingPage() {
     }
   }, [formA, formB, generateChart]);
 
+  // 样式统一走 CSS 变量（globals.css 亮暗两套），不再按 isDark 三元
   const cardStyle = {
-    background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.9)',
-    border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(200,160,60,0.2)'}`,
+    background: 'var(--bg-card)',
+    border: '1px solid var(--ac-bdr)',
     borderRadius: '16px',
     padding: '24px',
   };
@@ -104,7 +102,7 @@ export default function HemingPage() {
       {/* 顶栏 */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 50,
-        background: isDark ? 'rgba(2,8,16,0.88)' : 'rgba(250,245,235,0.92)',
+        background: 'var(--bg-topbar)',
         backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
         borderBottom: '1px solid var(--bdr)',
         display: 'flex', alignItems: 'center', padding: '0 24px', height: '52px', gap: '16px',

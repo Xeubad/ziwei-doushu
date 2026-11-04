@@ -79,7 +79,7 @@ export default function PalaceCell({
       style={{
         minHeight: '90px',
         background: isCurrentDaXian
-          ? 'rgba(147,51,234,0.07)'
+          ? 'color-mix(in srgb, var(--dx) 7%, transparent)'
           : isSelected
           ? 'rgba(212,168,67,0.15)'
           : isSanFang
@@ -88,7 +88,7 @@ export default function PalaceCell({
           ? 'rgba(212,168,67,0.04)'
           : 'var(--t-bg)',
         boxShadow: isCurrentDaXian
-          ? 'inset 3px 0 0 rgba(147,51,234,0.5)'
+          ? 'inset 3px 0 0 color-mix(in srgb, var(--dx) 50%, transparent)'
           : isSelected
           ? 'inset 0 0 0 1.5px rgba(212,168,67,0.65)'
           : isSanFang
@@ -98,11 +98,9 @@ export default function PalaceCell({
     >
       {/* 大限年龄 */}
       {daXianAge && (
-        <div className={clsx(
-          'absolute top-1 right-1 text-[9px] font-mono tabular-nums',
-          isCurrentDaXian ? 'text-purple-400' : ''
-        )}
-          style={!isCurrentDaXian ? { color: 'var(--t-faint)', opacity: 0.75 } : undefined}
+        <div
+          className="absolute top-1 right-1 text-[9px] font-mono tabular-nums"
+          style={isCurrentDaXian ? { color: 'var(--dx)' } : { color: 'var(--t-faint)', opacity: 0.75 }}
         >
           {daXianAge[0]}–{daXianAge[1]}
         </div>
