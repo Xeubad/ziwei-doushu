@@ -7,3 +7,7 @@ dist/
 *.tsbuildinfo
 .DS_Store
 node_modules
+
+# pnpm 本地产物（仓库以 npm 为准，pnpm 用户自行保留）
+pnpm-lock.yaml
+pnpm-workspace.yaml

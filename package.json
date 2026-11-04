@@ -15,7 +15,6 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "clsx": "^2.1.1",
-    "framer-motion": "^11.3.0",
     "html2canvas": "^1.4.1",
     "ioredis": "^5.10.1",
     "iztro": "^2.5.8",
