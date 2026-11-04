@@ -1,23 +1,14 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ZiweiChart, Palace } from '@/lib/ziwei/types';
 import type { TimeView } from './TimeNav';
 import AiContent from './AiContent';
-import { streamAiText, aiErrorMessage, AiStreamError } from '@/lib/ai/client';
+import { useInsightChat } from './insight/useInsightChat';
+import { useInsightInjection, type SelectedSiHua } from './insight/useInsightInjection';
+import { TOPICS, TOPIC_PROMPTS, type TopicKey } from './insight/prompts';
 
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  hidden?: boolean; // don't show user bubble for auto/topic messages
-  isError?: boolean; // 错误提示（未配置 Key / 上游失败等），按警示卡渲染
-}
-
-interface SelectedSiHua {
-  starName: string;
-  siHua: string;
-  view: TimeView;
-}
+export type { SelectedSiHua };
 
 interface InsightPanelProps {
   chart: ZiweiChart;
@@ -31,321 +22,24 @@ interface InsightPanelProps {
   onAnalysesChange?: (analyses: string[]) => void;
 }
 
-const CHAT_STORAGE_PREFIX = 'ziwei-chat-';
-
-const TOPICS = [
-  { key: 'overview',     label: '命格' },
-  { key: 'love',        label: '感情' },
-  { key: 'career',      label: '事业' },
-  { key: 'wealth',      label: '财运' },
-  { key: 'health',      label: '健康' },
-  { key: 'personality', label: '性格' },
-] as const;
-
-const TOPIC_PROMPTS: Record<string, string> = {
-  overview: `请生成命格总览，按以下结构输出：
-
-**【命格定性】**
-用一句话概括这个命盘的核心格局与命主气质。
-
-**【主星解读】**
-命宫主星的核心特质，引用倪海厦原话或观点。
-
-**【三方四正】**
-财、官、迁三宫的联动分析及整体格局。
-
-**【当前大限】**
-当下大限运势方向与最值得关注的事项。
-
-**【优势与注意】**
-命盘天赋优势，以及需要注意的风险或功课。`,
-
-  love: `请深度分析感情婚姻运，按以下结构输出：
-
-**【感情格局】**
-一句话定性感情命格。
-
-**【夫妻宫分析】**
-夫妻宫主星、四化，以及倪海厦体系的具体解读。
-
-**【三方联动】**
-相关宫位对感情的影响。
-
-**【当前大限感情运】**
-当下10年感情走向与关键节点。
-
-**【实际建议】**
-具体可行的感情建议。`,
-
-  career: `请深度分析事业运，按以下结构输出：
-
-**【事业格局】**
-一句话定性事业命格，宜任职或宜创业。
-
-**【官禄宫分析】**
-官禄宫主星、四化，以及倪师对这种配置的判断。
-
-**【财帛宫联动】**
-财运与事业的关系，财路来源分析。
-
-**【当前大限事业运】**
-当下10年事业走向。
-
-**【实际建议】**
-适合的方向、行业与策略。`,
-
-  wealth: `请深度分析财运，按以下结构输出：
-
-**【财运格局】**
-一句话定性财运模式，是主动财还是被动财。
-
-**【财帛宫分析】**
-财帛宫主星、四化，财富来源与流动模式。
-
-**【田宅宫（财库）】**
-积蓄能力与不动产运势分析。
-
-**【当前大限财运】**
-当下财运走向与注意事项。
-
-**【理财建议】**
-具体的财务建议。`,
-
-  health: `请分析健康运势，按以下结构输出：
-
-**【疾厄宫主星】**
-疾厄宫星曜与健康含义。
-
-**【主要风险】**
-结合倪海厦子午流注理论，分析主要健康隐患与需关注的部位。
-
-**【大限健康走势】**
-当下健康趋势与关键时间段。
-
-**【预防建议】**
-具体注意事项与养生方向。`,
-
-  personality: `请深度解析性格特质，按以下结构输出：
-
-**【命宫主星性格】**
-命宫主星的核心性格特质，引用倪师原话。
-
-**【三方性格综合】**
-财、官、迁三宫对性格的影响，全貌描绘。
-
-**【人际关系模式】**
-与他人互动方式、待人处世风格。
-
-**【优势与人生课题】**
-天赋优势，以及需要面对的人生功课。`,
-};
-
-const PALACE_ROLES: Record<string, string> = {
-  // iztro 宫名口径：仅命宫带「宫」字，「交友」在 iztro 里叫「仆役」
-  '命宫':   '自我、性格、先天格局',
-  '兄弟':   '兄弟关系、合伙人',
-  '夫妻':   '感情关系、婚姻状态',
-  '子女':   '子女缘分、下属关系',
-  '财帛':   '财运来源、收入方式',
-  '疾厄':   '身体健康、意外',
-  '迁移':   '外出机遇、人际格局',
-  '仆役':   '朋友圈、贵人、小人',
-  '官禄':   '事业成就、社会地位',
-  '田宅':   '不动产、家庭环境',
-  '福德':   '精神享受、内心福分',
-  '父母':   '父母关系、文书契约',
-};
-
 export default function InsightPanel({
   chart, selectedPalace, selectedSiHua, persistKey, readOnlyAnalyses, onAnalysesChange,
 }: InsightPanelProps) {
   const readOnly = readOnlyAnalyses !== undefined;
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [activeTopic, setActiveTopic] = useState<string>('overview');
-  const messagesRef = useRef<Message[]>([]); // always-current copy for closures
-  const loadingRef = useRef(false);
-  const autoLoaded = useRef(false);
-  const lastPalaceBranch = useRef<number | undefined>(undefined);
-  const lastSiHuaKey = useRef<string | undefined>(undefined);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeTopic, setActiveTopic] = useState<TopicKey>('overview');
 
-  // Keep refs in sync
-  useEffect(() => { messagesRef.current = messages; }, [messages]);
-  useEffect(() => { loadingRef.current = loading; }, [loading]);
+  const { messages, loading, input, setInput, sendMessage, scrollRef } = useInsightChat({
+    chart, persistKey, readOnly, onAnalysesChange,
+  });
+  useInsightInjection({ chart, selectedPalace, selectedSiHua, readOnly, sendMessage });
 
-  // Auto-scroll
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
-
-  // 首次进入：优先恢复本地续聊；没有记录再自动生成命格总览（只读模式不发请求）
-  useEffect(() => {
-    if (autoLoaded.current) return;
-    autoLoaded.current = true;
-    if (readOnly) return;
-
-    if (persistKey) {
-      try {
-        const saved = localStorage.getItem(CHAT_STORAGE_PREFIX + persistKey);
-        if (saved) {
-          const parsed = JSON.parse(saved) as Message[];
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setMessages(parsed);
-            return;
-          }
-        }
-      } catch { /* 损坏的记录忽略，回退到自动生成 */ }
-    }
-    sendMessage(TOPIC_PROMPTS.overview, true);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // 本地续聊：对话变化后防抖落盘（流式过程中不写，避免每个 delta 都写）
-  useEffect(() => {
-    if (readOnly || !persistKey || messages.length === 0) return;
-    const timer = setTimeout(() => {
-      try {
-        localStorage.setItem(CHAT_STORAGE_PREFIX + persistKey, JSON.stringify(messages.slice(-60)));
-      } catch { /* 隐私模式/配额满时静默失败 */ }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [messages, persistKey, readOnly]);
-
-  // 把 assistant 分析快照同步给父级（分享码用，不包含用户提问）
-  useEffect(() => {
-    if (!onAnalysesChange || readOnly) return;
-    const analyses = messages
-      .filter(m => m.role === 'assistant' && !m.isError && m.content.trim().length > 0)
-      .map(m => m.content);
-    onAnalysesChange(analyses);
-  }, [messages, onAnalysesChange, readOnly]);
-
-  // Inject palace analysis when palace selected
-  useEffect(() => {
-    if (readOnly) return;
-    if (!selectedPalace || selectedPalace.branch === lastPalaceBranch.current) return;
-    lastPalaceBranch.current = selectedPalace.branch;
-
-    const majorStars = selectedPalace.stars.filter(s => s.type === 'major');
-    const starDesc = majorStars.length > 0
-      ? majorStars.map(s => `${s.name}${s.siHua ? '化' + s.siHua : ''}`).join('、')
-      : '空宫（借对宫）';
-    const role = PALACE_ROLES[selectedPalace.name] ?? '';
-
-    const prompt = `请重点分析【${selectedPalace.name}】（主管：${role}），该宫主星为${starDesc}，按以下结构输出：
-
-**【宫位定性】**
-${selectedPalace.name}在命盘中的意义，以及这种星曜配置的整体判断。
-
-**【主星解读】**
-主星在此宫的倪海厦体系解读，引用具体观点。
-
-**【三方四正联动】**
-三方四正宫位对此宫的影响。
-
-**【实际建议】**
-基于此宫的具体建议。`;
-
-    sendMessage(prompt, true);
-  }, [selectedPalace]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // 注入四化飞化分析
-  useEffect(() => {
-    if (readOnly) return;
-    if (!selectedSiHua) return;
-    const key = `${selectedSiHua.starName}-${selectedSiHua.siHua}-${selectedSiHua.view}`;
-    if (key === lastSiHuaKey.current) return;
-    lastSiHuaKey.current = key;
-
-    // 找出该星所在宫位
-    const palaceOfStar = chart.palaces.find(p =>
-      p.stars.some(s => s.name === selectedSiHua.starName)
-    );
-    const palaceName = palaceOfStar?.name ?? '未知宫位';
-    const viewLabel = selectedSiHua.view === 'daxian' ? '大限' : '流年';
-
-    const prompt = `请分析【${viewLabel}${selectedSiHua.starName}化${selectedSiHua.siHua}】的飞化影响，按以下结构输出：
-
-**【化${selectedSiHua.siHua}基本含义】**
-化${selectedSiHua.siHua}在倪海厦体系中的核心含义，以及${selectedSiHua.starName}化${selectedSiHua.siHua}的特殊含义。
-
-**【落宫影响】**
-${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，该宫主管的领域受到何种影响，倪师如何解读。
-
-**【三方四正飞化路径】**
-化${selectedSiHua.siHua}入${palaceName}后，对其三方四正（对宫、两个三合宫）的联动影响。
-
-**【当前运势影响】**
-在${viewLabel}时间维度下，此化${selectedSiHua.siHua}对命主近期运势的具体影响。
-
-**【实际建议】**
-基于此四化的具体可操作建议。`;
-
-    sendMessage(prompt, true);
-  }, [selectedSiHua]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const streamResponse = async (apiMessages: { role: 'user' | 'assistant'; content: string }[]) => {
-    // 先占位一条空的 assistant 消息，流式增量持续覆盖它
-    setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
-    try {
-      await streamAiText({
-        url: '/api/interpret',
-        body: { chart, messages: apiMessages },
-        onText: (fullText) => {
-          setMessages(prev => {
-            const updated = [...prev];
-            updated[updated.length - 1] = { role: 'assistant', content: fullText };
-            return updated;
-          });
-        },
-      });
-    } catch (e) {
-      const err = e instanceof AiStreamError ? e : null;
-      // 替换占位消息，避免留下一条空的 assistant 气泡
-      setMessages(prev => {
-        const updated = [...prev];
-        updated[updated.length - 1] = {
-          role: 'assistant',
-          content: aiErrorMessage(err?.kind ?? 'unknown', '/api/interpret', err?.retryAfter),
-          isError: true,
-        };
-        return updated;
-      });
-    } finally {
-      setLoading(false);
-      loadingRef.current = false;
-    }
-  };
-
-  const sendMessage = (text: string, hidden = false) => {
-    if (!text.trim() || loadingRef.current) return;
-    loadingRef.current = true;
-    setLoading(true);
-
-    const userMsg: Message = { role: 'user', content: text, hidden };
-    // Capture current messages synchronously via ref (avoids stale closure)
-    const apiMessages = [...messagesRef.current, userMsg].map(m => ({
-      role: m.role,
-      content: m.content,
-    }));
-
-    setMessages(prev => [...prev, userMsg]);
-    setInput('');
-    streamResponse(apiMessages);
-  };
-
-  const handleTopicClick = (topicKey: string) => {
-    if (loadingRef.current) return;
+  const handleTopicClick = (topicKey: TopicKey) => {
+    if (loading) return;
     setActiveTopic(topicKey);
     sendMessage(TOPIC_PROMPTS[topicKey], true);
   };
 
-  const handleSend = () => {
-    sendMessage(input);
-  };
+  const handleSend = () => sendMessage(input);
 
   return (
     <div className="flex flex-col h-full rounded-xl overflow-hidden card-glass">
