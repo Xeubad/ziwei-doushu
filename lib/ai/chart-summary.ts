@@ -3,11 +3,11 @@
  *
  * 命盘整包 JSON 直接进 prompt 会浪费大量 token（含算法内部字段），
  * 这里只提取论命需要的信息：生辰、五行局、十二宫星曜四化、大限、格局。
- * 仅供服务端（API 路由）使用 —— 依赖 server-only 的 patterns.ts。
+ * 纯逻辑，无 server-only 依赖 —— API 路由与 CLI（scripts/cli/chart.ts）共用。
  */
 
 import type { ZiweiChart, Palace, Star } from '@/lib/ziwei/types';
-import { detectPatterns, getMingGongSummary } from '@/lib/ziwei/patterns';
+import { detectPatterns, getMingGongSummary } from '@/lib/ziwei/patterns-core';
 
 const BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
 const STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
@@ -89,13 +89,18 @@ export function chartToPromptText(chart: ZiweiChart): string {
   // ── 大限 ──
   lines.push('');
   lines.push('## 大限(每十年行运)');
+  // 宫干：daXians 不带 stemIndex，用同地支的十二宫取（否则整列为空/全甲）
+  const stemByBranch = new Map<number, number>();
+  for (const p of chart.palaces ?? []) stemByBranch.set(p.branch, p.stem);
   for (let i = 0; i < daXians.length; i++) {
     const d = daXians[i];
     const mark = i === chart.currentDaXianIndex ? ' ← 当前' : '';
+    const stemIndex = d.stemIndex ?? stemByBranch.get(d.palaceBranch);
+    const ganzhi = `${STEMS[stemIndex ?? 0] ?? '?'}${BRANCHES[d.palaceBranch] ?? '?'}`;
     const sihua = d.siHua
       ? ` 四化:禄${d.siHua.lu}/权${d.siHua.quan}/科${d.siHua.ke}/忌${d.siHua.ji}`
       : '';
-    lines.push(`${d.startAge}-${d.endAge}岁 ${d.palaceName}(${STEMS[d.stemIndex ?? 0] ?? '?'}${BRANCHES[d.palaceBranch] ?? '?'})${sihua}${mark}`);
+    lines.push(`${d.startAge}-${d.endAge}岁 ${d.palaceName}(${ganzhi})${sihua}${mark}`);
   }
 
   return lines.join('\n');
